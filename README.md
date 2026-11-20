@@ -8,7 +8,7 @@ Projeto acadêmico construído com Next.js seguindo a [documentação oficial](h
 
 - [Next.js 16](https://nextjs.org/docs) (App Router, Turbopack) e React 19
 - TypeScript
-- [Tailwind CSS 4](https://tailwindcss.com/docs)
+- [Tailwind CSS 4](https://tailwindcss.com/docs), com o tema do design em `app/ui/global.css`
 - ESLint
 
 ## Pré-requisitos
