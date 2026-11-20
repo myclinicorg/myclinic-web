@@ -28,17 +28,17 @@ A aplicação sobe em `http://localhost:3001`.
 
 ## Variáveis de ambiente
 
-| Variável | Descrição |
-| --- | --- |
+| Variável  | Descrição                                           |
+| --------- | --------------------------------------------------- |
 | `API_URL` | URL da MyClinic API, usada pelo servidor do Next.js |
 
 ## Scripts
 
-| Comando | Descrição |
-| --- | --- |
-| `npm run dev` | Inicia em modo desenvolvimento |
+| Comando                       | Descrição                              |
+| ----------------------------- | -------------------------------------- |
+| `npm run dev`                 | Inicia em modo desenvolvimento         |
 | `npm run build` / `npm start` | Compila e executa a versão de produção |
-| `npm run lint` | Lint (ESLint) |
+| `npm run lint`                | Lint (ESLint)                          |
 
 ## Estrutura
 
