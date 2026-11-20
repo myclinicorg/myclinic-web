@@ -1,10 +1,16 @@
 import * as z from 'zod';
 import type { components } from '@/app/lib/api-schema';
-import { isValidCnpj, isValidCpf, onlyDigits } from '@/app/lib/utils';
+import {
+  isValidCnpj,
+  isValidCpf,
+  onlyDigits,
+  parseCurrencyToCents,
+} from '@/app/lib/utils';
 
 export type User = components['schemas']['UserEntity'];
 export type Clinic = components['schemas']['ClinicEntity'];
 export type Patient = components['schemas']['PatientEntity'];
+export type Service = components['schemas']['ServiceEntity'];
 
 export const LoginFormSchema = z.object({
   email: z.email({ error: 'Informe um e-mail válido.' }).trim(),
@@ -192,6 +198,32 @@ export const PatientFormSchema = z.object({
 });
 
 export type PatientField = keyof z.input<typeof PatientFormSchema>;
+
+export const ServiceFormSchema = z.object({
+  name: z
+    .string()
+    .trim()
+    .min(1, { error: 'Informe o nome do serviço.' })
+    .max(120, { error: 'O nome deve ter no máximo 120 caracteres.' }),
+  description: optionalText(
+    500,
+    'A descrição deve ter no máximo 500 caracteres.',
+  ),
+  price: z
+    .string()
+    .transform(parseCurrencyToCents)
+    .refine((cents) => Number.isFinite(cents) && cents >= 0, {
+      error: 'Informe o preço em reais, por exemplo 150,00.',
+    }),
+  durationMinutes: z.coerce
+    .number({ error: 'Informe a duração em minutos.' })
+    .int({ error: 'Informe a duração em minutos inteiros.' })
+    .min(5, { error: 'A duração mínima é de 5 minutos.' })
+    .max(720, { error: 'A duração máxima é de 720 minutos (12 horas).' }),
+  active: z.string().transform((value) => value === 'on'),
+});
+
+export type ServiceField = keyof z.input<typeof ServiceFormSchema>;
 
 export type AddressField = keyof typeof addressShape;
 

@@ -89,3 +89,24 @@ export function isValidCpf(cpf: string) {
 
 export const formatCpf = (cpf: string) =>
   cpf.replace(/^(\d{3})(\d{3})(\d{3})(\d{2})$/, '$1.$2.$3-$4');
+
+export function parseCurrencyToCents(value: string) {
+  const normalized = value.replace(/[R$\s]/g, '');
+  const decimal = normalized.includes(',')
+    ? normalized.replace(/\./g, '').replace(',', '.')
+    : normalized;
+  if (!/^\d+(\.\d{1,2})?$/.test(decimal)) {
+    return NaN;
+  }
+  return Math.round(Number(decimal) * 100);
+}
+
+export const formatCentsForInput = (cents: number) =>
+  (cents / 100).toFixed(2).replace('.', ',');
+
+export function formatDuration(minutes: number) {
+  const hours = Math.floor(minutes / 60);
+  const rest = minutes % 60;
+  if (!hours) return `${rest} min`;
+  return rest ? `${hours}h ${rest}min` : `${hours}h`;
+}

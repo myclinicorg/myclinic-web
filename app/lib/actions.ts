@@ -8,6 +8,8 @@ import {
   type ClinicField,
   PatientFormSchema,
   type PatientField,
+  ServiceFormSchema,
+  type ServiceField,
   ForgotPasswordFormSchema,
   type FormState,
   LoginFormSchema,
@@ -26,6 +28,7 @@ export type ForgotPasswordState =
   (FormState<'email'> & { sent?: boolean }) | undefined;
 export type ResetPasswordState = FormState<'token' | 'password'>;
 export type PatientState = FormState<PatientField>;
+export type ServiceState = FormState<ServiceField>;
 export type DeleteState = { message?: string } | undefined;
 export type ClinicState =
   (FormState<ClinicField> & { saved?: boolean }) | undefined;
@@ -373,4 +376,64 @@ export async function deletePatient(id: string): Promise<DeleteState> {
   }
 
   revalidatePath('/painel/pacientes');
+}
+
+const SERVICE_FIELDS = [
+  'name',
+  'description',
+  'price',
+  'durationMinutes',
+  'active',
+] as const;
+
+async function saveService(
+  formData: FormData,
+  id?: string,
+): Promise<ServiceState> {
+  const values = readValues(formData, SERVICE_FIELDS);
+  const validatedFields = ServiceFormSchema.safeParse(values);
+
+  if (!validatedFields.success) {
+    return { errors: validatedFields.error.flatten().fieldErrors, values };
+  }
+
+  const { price, ...service } = validatedFields.data;
+  const body = { ...service, priceCents: price };
+  const { error, response } = id
+    ? await api.PATCH('/services/{id}', { params: { path: { id } }, body })
+    : await api.POST('/services', { body });
+
+  if (!response.ok) {
+    return apiErrorState(response, error, values);
+  }
+
+  revalidatePath('/painel/servicos');
+  redirect('/painel/servicos');
+}
+
+export async function createService(
+  state: ServiceState,
+  formData: FormData,
+): Promise<ServiceState> {
+  return saveService(formData);
+}
+
+export async function updateService(
+  id: string,
+  state: ServiceState,
+  formData: FormData,
+): Promise<ServiceState> {
+  return saveService(formData, id);
+}
+
+export async function deleteService(id: string): Promise<DeleteState> {
+  const { error, response } = await api.DELETE('/services/{id}', {
+    params: { path: { id } },
+  });
+
+  if (!response.ok && response.status !== 404) {
+    return apiErrorState(response, error, {});
+  }
+
+  revalidatePath('/painel/servicos');
 }
