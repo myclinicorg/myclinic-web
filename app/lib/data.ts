@@ -57,3 +57,37 @@ export async function fetchPatientById(id: string) {
   }
   return data;
 }
+
+export async function fetchFilteredServices(
+  status: 'ativos' | 'inativos' | undefined,
+  currentPage: number,
+) {
+  await connection();
+  const { data, response } = await api.GET('/services', {
+    params: {
+      query: {
+        active: status ? String(status === 'ativos') : undefined,
+        page: currentPage,
+        pageSize: ITEMS_PER_PAGE,
+      },
+    },
+  });
+  if (!data) {
+    handleFailure(response, 'Falha ao carregar os serviços.');
+  }
+  return data;
+}
+
+export async function fetchServiceById(id: string) {
+  await connection();
+  const { data, response } = await api.GET('/services/{id}', {
+    params: { path: { id } },
+  });
+  if (response.status === 404 || response.status === 400) {
+    return null;
+  }
+  if (!data) {
+    handleFailure(response, 'Falha ao carregar o serviço.');
+  }
+  return data;
+}
