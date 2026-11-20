@@ -37,7 +37,7 @@ const colors: Record<Hierarchy, Record<Color, string>> = {
   },
   secondary: {
     brand: 'border-2 border-brand-700 text-brand-700 hover:bg-brand-50',
-    gray: 'border-2 border-neutral-700 text-neutral-700 hover:bg-neutral-50',
+    gray: 'border-2 border-neutral-200 text-neutral-900 hover:bg-neutral-50',
     danger: 'border-2 border-error-solid text-error-solid hover:bg-error-soft',
   },
   tertiary: {

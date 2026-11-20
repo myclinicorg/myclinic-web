@@ -45,3 +45,31 @@ export const generatePagination = (currentPage: number, totalPages: number) => {
     totalPages,
   ];
 };
+
+export const onlyDigits = (value: string) => value.replace(/\D/g, '');
+
+export function isValidCnpj(cnpj: string) {
+  if (!/^\d{14}$/.test(cnpj) || /^(\d)\1{13}$/.test(cnpj)) {
+    return false;
+  }
+  const weights = [6, 5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2];
+  return [12, 13].every((length) => {
+    const sum = [...cnpj.slice(0, length)].reduce(
+      (total, digit, i) => total + Number(digit) * weights[i + 13 - length],
+      0,
+    );
+    const remainder = sum % 11;
+    return (remainder < 2 ? 0 : 11 - remainder) === Number(cnpj[length]);
+  });
+}
+
+export const formatCnpj = (cnpj: string) =>
+  cnpj.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, '$1.$2.$3/$4-$5');
+
+export const formatPhone = (phone: string) =>
+  phone.length === 11
+    ? phone.replace(/^(\d{2})(\d{5})(\d{4})$/, '($1) $2-$3')
+    : phone.replace(/^(\d{2})(\d{4})(\d{4})$/, '($1) $2-$3');
+
+export const formatZipCode = (zipCode: string) =>
+  zipCode.replace(/^(\d{5})(\d{3})$/, '$1-$2');

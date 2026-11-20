@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import { Suspense } from 'react';
-import { getCurrentUser } from '@/app/lib/dal';
+import { requireClinic } from '@/app/lib/dal';
 import PageHeader from '@/app/ui/page-header';
 import { TextSkeleton } from '@/app/ui/skeletons';
 
@@ -9,7 +9,7 @@ export const metadata: Metadata = {
 };
 
 async function Welcome() {
-  const user = await getCurrentUser();
+  const user = await requireClinic();
   const [firstName] = user.name.split(' ');
   return (
     <PageHeader
