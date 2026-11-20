@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { Suspense } from 'react';
 import { fetchPatientById } from '@/app/lib/data';
+import Breadcrumbs from '@/app/ui/breadcrumbs';
 import PageHeader from '@/app/ui/page-header';
 import PatientForm from '@/app/ui/patients/patient-form';
 import { ClinicFormSkeleton } from '@/app/ui/skeletons';
@@ -16,7 +17,22 @@ async function EditPatient({ params }: { params: Promise<{ id: string }> }) {
   if (!patient) {
     notFound();
   }
-  return <PatientForm patient={patient} />;
+  return (
+    <>
+      <Breadcrumbs
+        items={[
+          { label: 'Pacientes', href: '/painel/pacientes' },
+          { label: patient.fullName, href: `/painel/pacientes/${patient.id}` },
+          { label: 'Editar' },
+        ]}
+      />
+      <PageHeader
+        title="Editar paciente"
+        description="Atualize os dados do paciente."
+      />
+      <PatientForm patient={patient} />
+    </>
+  );
 }
 
 export default function Page(
@@ -24,10 +40,6 @@ export default function Page(
 ) {
   return (
     <div className="flex flex-col gap-6">
-      <PageHeader
-        title="Editar paciente"
-        description="Atualize os dados do paciente."
-      />
       <Suspense fallback={<ClinicFormSkeleton />}>
         <EditPatient params={props.params} />
       </Suspense>

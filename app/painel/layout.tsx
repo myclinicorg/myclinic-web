@@ -6,6 +6,7 @@ import MobileTopBar, {
   MobileTopBarView,
 } from '@/app/ui/dashboard/mobile-top-bar';
 import SideNav from '@/app/ui/dashboard/sidenav';
+import Toast from '@/app/ui/toast';
 
 export default function Layout({ children }: LayoutProps<'/painel'>) {
   return (
@@ -21,6 +22,9 @@ export default function Layout({ children }: LayoutProps<'/painel'>) {
           {children}
         </main>
       </div>
+      <Suspense>
+        <Toast />
+      </Suspense>
       <Suspense fallback={<MobileBottomNavView />}>
         <MobileBottomNav />
       </Suspense>

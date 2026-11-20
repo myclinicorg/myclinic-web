@@ -11,6 +11,19 @@ export type User = components['schemas']['UserEntity'];
 export type Clinic = components['schemas']['ClinicEntity'];
 export type Patient = components['schemas']['PatientEntity'];
 export type Service = components['schemas']['ServiceEntity'];
+export type Appointment = components['schemas']['AppointmentEntity'];
+export type AppointmentStatus = Appointment['status'];
+
+export const APPOINTMENT_STATUS: Record<
+  AppointmentStatus,
+  { label: string; color: 'brand' | 'gray' | 'success' | 'danger' | 'warning' }
+> = {
+  SCHEDULED: { label: 'Agendado', color: 'brand' },
+  CONFIRMED: { label: 'Confirmado', color: 'warning' },
+  COMPLETED: { label: 'Concluído', color: 'success' },
+  CANCELED: { label: 'Cancelado', color: 'gray' },
+  NO_SHOW: { label: 'Faltou', color: 'danger' },
+};
 
 export const LoginFormSchema = z.object({
   email: z.email({ error: 'Informe um e-mail válido.' }).trim(),

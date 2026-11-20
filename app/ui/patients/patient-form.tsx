@@ -159,7 +159,9 @@ export default function PatientForm({ patient }: { patient?: Patient }) {
         <FormMessage>{state?.message}</FormMessage>
         <div className="flex justify-end gap-3">
           <Link
-            href="/painel/pacientes"
+            href={
+              patient ? `/painel/pacientes/${patient.id}` : '/painel/pacientes'
+            }
             className={buttonClasses({ hierarchy: 'secondary', color: 'gray' })}
           >
             Cancelar
