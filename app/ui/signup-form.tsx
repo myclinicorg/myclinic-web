@@ -17,6 +17,7 @@ export default function SignupForm() {
         label="Nome"
         placeholder="Seu nome completo"
         autoComplete="name"
+        defaultValue={state?.values?.name}
         errors={state?.errors?.name}
         required
       />
@@ -27,6 +28,7 @@ export default function SignupForm() {
         label="E-mail"
         placeholder="voce@exemplo.com"
         autoComplete="email"
+        defaultValue={state?.values?.email}
         errors={state?.errors?.email}
         required
       />

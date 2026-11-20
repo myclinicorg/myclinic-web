@@ -25,5 +25,6 @@ export type FormState<Field extends string = string> =
   | {
       errors?: Partial<Record<Field, string[]>>;
       message?: string;
+      values?: Partial<Record<Field, string>>;
     }
   | undefined;

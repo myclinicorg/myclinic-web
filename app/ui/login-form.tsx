@@ -21,6 +21,7 @@ export default function LoginForm() {
         label="E-mail"
         placeholder="voce@exemplo.com"
         autoComplete="email"
+        defaultValue={state?.values?.email}
         errors={state?.errors?.email}
         required
       />

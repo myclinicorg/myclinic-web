@@ -29,8 +29,10 @@ export async function authenticate(
     password: formData.get('password'),
   });
 
+  const values = { email: String(formData.get('email') ?? '') };
+
   if (!validatedFields.success) {
-    return { errors: validatedFields.error.flatten().fieldErrors };
+    return { errors: validatedFields.error.flatten().fieldErrors, values };
   }
 
   const { response } = await api.POST('/auth/sign-in', {
@@ -38,14 +40,14 @@ export async function authenticate(
   });
 
   if (response.status === 401) {
-    return { message: 'E-mail ou senha inválidos.' };
+    return { message: 'E-mail ou senha inválidos.', values };
   }
   if (response.status === 429) {
-    return { message: TOO_MANY_ATTEMPTS };
+    return { message: TOO_MANY_ATTEMPTS, values };
   }
   const session = response.ok ? readApiSession(response) : null;
   if (!session) {
-    return { message: UNEXPECTED_ERROR };
+    return { message: UNEXPECTED_ERROR, values };
   }
 
   await createSession(session.token, session.expires);
@@ -62,8 +64,13 @@ export async function signup(
     password: formData.get('password'),
   });
 
+  const values = {
+    name: String(formData.get('name') ?? ''),
+    email: String(formData.get('email') ?? ''),
+  };
+
   if (!validatedFields.success) {
-    return { errors: validatedFields.error.flatten().fieldErrors };
+    return { errors: validatedFields.error.flatten().fieldErrors, values };
   }
 
   const { response } = await api.POST('/auth/sign-up', {
@@ -71,14 +78,14 @@ export async function signup(
   });
 
   if (response.status === 409) {
-    return { errors: { email: ['Este e-mail já está cadastrado.'] } };
+    return { errors: { email: ['Este e-mail já está cadastrado.'] }, values };
   }
   if (response.status === 429) {
-    return { message: TOO_MANY_ATTEMPTS };
+    return { message: TOO_MANY_ATTEMPTS, values };
   }
   const session = response.ok ? readApiSession(response) : null;
   if (!session) {
-    return { message: UNEXPECTED_ERROR };
+    return { message: UNEXPECTED_ERROR, values };
   }
 
   await createSession(session.token, session.expires);
