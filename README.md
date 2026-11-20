@@ -46,7 +46,7 @@ A aplicação sobe em `http://localhost:3001`.
 app/
   lib/   tipos, funções de leitura de dados, Server Actions, sessão e utilitários
   ui/    componentes de interface e estilos globais
-proxy.ts protege as rotas da área logada
+proxy.ts redireciona entre as páginas públicas e a área logada conforme a sessão
 ```
 
 ## Convenções
