@@ -73,3 +73,19 @@ export const formatPhone = (phone: string) =>
 
 export const formatZipCode = (zipCode: string) =>
   zipCode.replace(/^(\d{5})(\d{3})$/, '$1-$2');
+
+export function isValidCpf(cpf: string) {
+  if (!/^\d{11}$/.test(cpf) || /^(\d)\1{10}$/.test(cpf)) {
+    return false;
+  }
+  return [9, 10].every((length) => {
+    const sum = [...cpf.slice(0, length)].reduce(
+      (total, digit, i) => total + Number(digit) * (length + 1 - i),
+      0,
+    );
+    return ((sum * 10) % 11) % 10 === Number(cpf[length]);
+  });
+}
+
+export const formatCpf = (cpf: string) =>
+  cpf.replace(/^(\d{3})(\d{3})(\d{3})(\d{2})$/, '$1.$2.$3-$4');

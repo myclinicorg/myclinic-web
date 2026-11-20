@@ -53,3 +53,23 @@ export function ClinicFormSkeleton() {
     </div>
   );
 }
+
+export function TableSkeleton({ rows = 5 }: { rows?: number }) {
+  return (
+    <div>
+      <div className="h-11 border-b border-neutral-100 bg-neutral-50" />
+      {Array.from({ length: rows }, (_, i) => (
+        <div
+          key={i}
+          className="flex h-16 items-center gap-3 border-b border-neutral-100 px-4"
+        >
+          <div className="size-8 rounded-full bg-neutral-100" />
+          <div className="flex flex-1 flex-col gap-2">
+            <SkeletonLine className="w-1/3" />
+            <SkeletonLine className="w-1/5" />
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}

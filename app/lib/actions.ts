@@ -6,6 +6,8 @@ import { api } from '@/app/lib/api';
 import {
   ClinicFormSchema,
   type ClinicField,
+  PatientFormSchema,
+  type PatientField,
   ForgotPasswordFormSchema,
   type FormState,
   LoginFormSchema,
@@ -23,6 +25,8 @@ export type SignupState = FormState<'name' | 'email' | 'password'>;
 export type ForgotPasswordState =
   (FormState<'email'> & { sent?: boolean }) | undefined;
 export type ResetPasswordState = FormState<'token' | 'password'>;
+export type PatientState = FormState<PatientField>;
+export type DeleteState = { message?: string } | undefined;
 export type ClinicState =
   (FormState<ClinicField> & { saved?: boolean }) | undefined;
 
@@ -169,12 +173,7 @@ export async function logout() {
   redirect('/entrar');
 }
 
-const CLINIC_TEXT_FIELDS = [
-  'name',
-  'cnpj',
-  'description',
-  'phone',
-  'contactEmail',
+const ADDRESS_FIELDS = [
   'zipCode',
   'street',
   'streetNumber',
@@ -182,16 +181,43 @@ const CLINIC_TEXT_FIELDS = [
   'addressComplement',
   'city',
   'state',
+] as const;
+
+const CLINIC_TEXT_FIELDS = [
+  'name',
+  'cnpj',
+  'description',
+  'phone',
+  'contactEmail',
+  ...ADDRESS_FIELDS,
   'openingTime',
   'closingTime',
 ] as const;
 
+const PATIENT_FIELDS = [
+  'fullName',
+  'cpf',
+  'sex',
+  'dateOfBirth',
+  'email',
+  'phone',
+  'notes',
+  ...ADDRESS_FIELDS,
+] as const;
+
+function readValues<Field extends string>(
+  formData: FormData,
+  fields: readonly Field[],
+) {
+  return Object.fromEntries(
+    fields.map((field) => [field, String(formData.get(field) ?? '')]),
+  ) as Record<Field, string>;
+}
+
 function parseClinicForm(formData: FormData) {
-  const values: Partial<Record<ClinicField, string>> = Object.fromEntries(
-    CLINIC_TEXT_FIELDS.map((field) => [
-      field,
-      String(formData.get(field) ?? ''),
-    ]),
+  const values: Partial<Record<ClinicField, string>> = readValues(
+    formData,
+    CLINIC_TEXT_FIELDS,
   );
   const workingDays = formData.getAll('workingDays').map(String);
   values.workingDays = workingDays.join(',');
@@ -203,11 +229,12 @@ function parseClinicForm(formData: FormData) {
   return { validatedFields, values };
 }
 
-async function clinicErrorState(
+function apiErrorState<Field extends string>(
   response: Response,
   error: unknown,
-  values: Partial<Record<ClinicField, string>>,
-): Promise<ClinicState> {
+  values: Partial<Record<Field, string>>,
+  conflict?: { field: Field; apiMessage: string; message: string },
+) {
   if (response.status === 401) {
     redirect('/sessao-expirada');
   }
@@ -215,9 +242,11 @@ async function clinicErrorState(
     error && typeof error === 'object' && 'message' in error
       ? error.message
       : undefined;
-  if (response.status === 409 && message === 'CNPJ já cadastrado') {
+  if (response.status === 409 && conflict && message === conflict.apiMessage) {
     return {
-      errors: { cnpj: ['Já existe uma clínica com este CNPJ.'] },
+      errors: { [conflict.field]: [conflict.message] } as Partial<
+        Record<Field, string[]>
+      >,
       values,
     };
   }
@@ -229,6 +258,18 @@ async function clinicErrorState(
   }
   return { message: UNEXPECTED_ERROR, values };
 }
+
+const CNPJ_CONFLICT = {
+  field: 'cnpj',
+  apiMessage: 'CNPJ já cadastrado',
+  message: 'Já existe uma clínica com este CNPJ.',
+} as const;
+
+const CPF_CONFLICT = {
+  field: 'cpf',
+  apiMessage: 'CPF já cadastrado',
+  message: 'Já existe um paciente com este CPF.',
+} as const;
 
 export async function createClinic(
   state: ClinicState,
@@ -245,7 +286,7 @@ export async function createClinic(
   });
 
   if (!response.ok) {
-    return clinicErrorState(response, error, values);
+    return apiErrorState(response, error, values, CNPJ_CONFLICT);
   }
 
   revalidatePath('/painel', 'layout');
@@ -267,9 +308,69 @@ export async function updateClinic(
   });
 
   if (!response.ok) {
-    return clinicErrorState(response, error, values);
+    return apiErrorState(response, error, values, CNPJ_CONFLICT);
   }
 
   revalidatePath('/painel/clinica');
   return { saved: true, message: 'Dados da clínica salvos.', values };
+}
+
+export async function createPatient(
+  state: PatientState,
+  formData: FormData,
+): Promise<PatientState> {
+  const values = readValues(formData, PATIENT_FIELDS);
+  const validatedFields = PatientFormSchema.safeParse(values);
+
+  if (!validatedFields.success) {
+    return { errors: validatedFields.error.flatten().fieldErrors, values };
+  }
+
+  const { error, response } = await api.POST('/patients', {
+    body: validatedFields.data,
+  });
+
+  if (!response.ok) {
+    return apiErrorState(response, error, values, CPF_CONFLICT);
+  }
+
+  revalidatePath('/painel/pacientes');
+  redirect('/painel/pacientes');
+}
+
+export async function updatePatient(
+  id: string,
+  state: PatientState,
+  formData: FormData,
+): Promise<PatientState> {
+  const values = readValues(formData, PATIENT_FIELDS);
+  const validatedFields = PatientFormSchema.safeParse(values);
+
+  if (!validatedFields.success) {
+    return { errors: validatedFields.error.flatten().fieldErrors, values };
+  }
+
+  const { error, response } = await api.PATCH('/patients/{id}', {
+    params: { path: { id } },
+    body: validatedFields.data,
+  });
+
+  if (!response.ok) {
+    return apiErrorState(response, error, values, CPF_CONFLICT);
+  }
+
+  revalidatePath('/painel/pacientes');
+  redirect('/painel/pacientes');
+}
+
+export async function deletePatient(id: string): Promise<DeleteState> {
+  const { error, response } = await api.DELETE('/patients/{id}', {
+    params: { path: { id } },
+  });
+
+  if (!response.ok && response.status !== 404) {
+    return apiErrorState(response, error, {});
+  }
+
+  revalidatePath('/painel/pacientes');
 }

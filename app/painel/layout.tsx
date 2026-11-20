@@ -1,5 +1,10 @@
-import MobileBottomNav from '@/app/ui/dashboard/mobile-bottom-nav';
-import MobileTopBar from '@/app/ui/dashboard/mobile-top-bar';
+import { Suspense } from 'react';
+import MobileBottomNav, {
+  MobileBottomNavView,
+} from '@/app/ui/dashboard/mobile-bottom-nav';
+import MobileTopBar, {
+  MobileTopBarView,
+} from '@/app/ui/dashboard/mobile-top-bar';
 import SideNav from '@/app/ui/dashboard/sidenav';
 
 export default function Layout({ children }: LayoutProps<'/painel'>) {
@@ -9,12 +14,16 @@ export default function Layout({ children }: LayoutProps<'/painel'>) {
         <SideNav />
       </aside>
       <div className="flex min-w-0 flex-1 flex-col">
-        <MobileTopBar />
+        <Suspense fallback={<MobileTopBarView />}>
+          <MobileTopBar />
+        </Suspense>
         <main className="flex-1 px-4 pt-6 pb-28 md:px-10 md:pt-8 md:pb-10">
           {children}
         </main>
       </div>
-      <MobileBottomNav />
+      <Suspense fallback={<MobileBottomNavView />}>
+        <MobileBottomNav />
+      </Suspense>
     </div>
   );
 }
