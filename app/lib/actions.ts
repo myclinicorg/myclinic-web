@@ -1,8 +1,11 @@
 'use server';
 
+import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { api } from '@/app/lib/api';
 import {
+  ClinicFormSchema,
+  type ClinicField,
   ForgotPasswordFormSchema,
   type FormState,
   LoginFormSchema,
@@ -20,6 +23,8 @@ export type SignupState = FormState<'name' | 'email' | 'password'>;
 export type ForgotPasswordState =
   (FormState<'email'> & { sent?: boolean }) | undefined;
 export type ResetPasswordState = FormState<'token' | 'password'>;
+export type ClinicState =
+  (FormState<ClinicField> & { saved?: boolean }) | undefined;
 
 const TOO_MANY_ATTEMPTS =
   'Muitas tentativas. Aguarde alguns minutos e tente novamente.';
@@ -56,7 +61,8 @@ export async function authenticate(
   }
 
   await createSession(session.token, session.expires);
-  redirect('/painel');
+  const { data: user } = await api.GET('/me');
+  redirect(user?.clinicId === null ? '/painel/clinica' : '/painel');
 }
 
 export async function signup(
@@ -94,7 +100,7 @@ export async function signup(
   }
 
   await createSession(session.token, session.expires);
-  redirect('/painel');
+  redirect('/painel/clinica');
 }
 
 export async function requestPasswordReset(
@@ -161,4 +167,109 @@ export async function logout() {
   await api.POST('/auth/sign-out');
   await deleteSession();
   redirect('/entrar');
+}
+
+const CLINIC_TEXT_FIELDS = [
+  'name',
+  'cnpj',
+  'description',
+  'phone',
+  'contactEmail',
+  'zipCode',
+  'street',
+  'streetNumber',
+  'neighborhood',
+  'addressComplement',
+  'city',
+  'state',
+  'openingTime',
+  'closingTime',
+] as const;
+
+function parseClinicForm(formData: FormData) {
+  const values: Partial<Record<ClinicField, string>> = Object.fromEntries(
+    CLINIC_TEXT_FIELDS.map((field) => [
+      field,
+      String(formData.get(field) ?? ''),
+    ]),
+  );
+  const workingDays = formData.getAll('workingDays').map(String);
+  values.workingDays = workingDays.join(',');
+
+  const validatedFields = ClinicFormSchema.safeParse({
+    ...values,
+    workingDays,
+  });
+  return { validatedFields, values };
+}
+
+async function clinicErrorState(
+  response: Response,
+  error: unknown,
+  values: Partial<Record<ClinicField, string>>,
+): Promise<ClinicState> {
+  if (response.status === 401) {
+    redirect('/sessao-expirada');
+  }
+  const message =
+    error && typeof error === 'object' && 'message' in error
+      ? error.message
+      : undefined;
+  if (response.status === 409 && message === 'CNPJ já cadastrado') {
+    return {
+      errors: { cnpj: ['Já existe uma clínica com este CNPJ.'] },
+      values,
+    };
+  }
+  if (response.status === 400 || response.status === 409) {
+    return {
+      message: Array.isArray(message) ? message.join(' ') : String(message),
+      values,
+    };
+  }
+  return { message: UNEXPECTED_ERROR, values };
+}
+
+export async function createClinic(
+  state: ClinicState,
+  formData: FormData,
+): Promise<ClinicState> {
+  const { validatedFields, values } = parseClinicForm(formData);
+
+  if (!validatedFields.success) {
+    return { errors: validatedFields.error.flatten().fieldErrors, values };
+  }
+
+  const { error, response } = await api.POST('/clinic', {
+    body: validatedFields.data,
+  });
+
+  if (!response.ok) {
+    return clinicErrorState(response, error, values);
+  }
+
+  revalidatePath('/painel', 'layout');
+  redirect('/painel');
+}
+
+export async function updateClinic(
+  state: ClinicState,
+  formData: FormData,
+): Promise<ClinicState> {
+  const { validatedFields, values } = parseClinicForm(formData);
+
+  if (!validatedFields.success) {
+    return { errors: validatedFields.error.flatten().fieldErrors, values };
+  }
+
+  const { error, response } = await api.PATCH('/clinic', {
+    body: validatedFields.data,
+  });
+
+  if (!response.ok) {
+    return clinicErrorState(response, error, values);
+  }
+
+  revalidatePath('/painel/clinica');
+  return { saved: true, message: 'Dados da clínica salvos.', values };
 }
