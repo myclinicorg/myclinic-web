@@ -6,9 +6,12 @@ export const metadata: Metadata = {
   title: 'Entrar',
 };
 
-export default function LoginPage() {
+export default function Page() {
   return (
-    <AuthCard title="Entrar" description="Acesse a gestão da sua clínica.">
+    <AuthCard
+      title="Bem-vindo de volta"
+      description="Entre para acessar a gestão da sua clínica."
+    >
       <LoginForm />
     </AuthCard>
   );

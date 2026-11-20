@@ -6,7 +6,7 @@ export const metadata: Metadata = {
   title: 'Criar conta',
 };
 
-export default function SignupPage() {
+export default function Page() {
   return (
     <AuthCard
       title="Criar conta"

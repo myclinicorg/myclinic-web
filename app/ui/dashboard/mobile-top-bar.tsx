@@ -8,7 +8,7 @@ import { isActive, links } from '@/app/ui/dashboard/links';
 export default function MobileTopBar() {
   const pathname = usePathname();
   const title =
-    pathname === '/dashboard/more'
+    pathname === '/painel/mais'
       ? 'Mais'
       : (links.find((link) => isActive(pathname, link.href))?.name ??
         'MyClinic');
@@ -19,7 +19,7 @@ export default function MobileTopBar() {
         {title}
       </p>
       <Link
-        href="/dashboard/clinic"
+        href="/painel/clinica"
         aria-label="Clínica"
         className="flex size-10 items-center justify-center text-neutral-800"
       >

@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { SESSION_COOKIE } from '@/app/lib/session';
 
-const protectedRoutes = ['/dashboard'];
-const publicRoutes = ['/login', '/signup', '/'];
+const protectedRoutes = ['/painel'];
+const publicRoutes = ['/entrar', '/cadastro', '/'];
 
 export default async function proxy(req: NextRequest) {
   const path = req.nextUrl.pathname;
@@ -14,11 +14,11 @@ export default async function proxy(req: NextRequest) {
   const hasSession = req.cookies.has(SESSION_COOKIE);
 
   if (isProtectedRoute && !hasSession) {
-    return NextResponse.redirect(new URL('/login', req.nextUrl));
+    return NextResponse.redirect(new URL('/entrar', req.nextUrl));
   }
 
   if (isPublicRoute && hasSession) {
-    return NextResponse.redirect(new URL('/dashboard', req.nextUrl));
+    return NextResponse.redirect(new URL('/painel', req.nextUrl));
   }
 
   return NextResponse.next();

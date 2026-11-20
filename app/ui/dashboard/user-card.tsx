@@ -1,24 +1,14 @@
 import { RiLogoutBoxRLine } from '@remixicon/react';
 import { logout } from '@/app/lib/actions';
 import { getCurrentUser } from '@/app/lib/dal';
-
-function initials(name: string) {
-  const [first, ...rest] = name.trim().split(/\s+/);
-  const last = rest.at(-1);
-  return `${first[0]}${last?.[0] ?? ''}`.toUpperCase();
-}
+import Avatar from '@/app/ui/avatar';
 
 export default async function UserCard() {
   const user = await getCurrentUser();
 
   return (
     <div className="flex w-full items-center gap-3 p-2">
-      <span
-        aria-hidden
-        className="text-subtitle-s flex size-10 shrink-0 items-center justify-center rounded-full bg-neutral-100 text-neutral-800"
-      >
-        {initials(user.name)}
-      </span>
+      <Avatar name={user.name} size="m" />
       <div className="flex min-w-0 flex-1 flex-col gap-0.5">
         <p className="text-subtitle-s truncate text-neutral-900">{user.name}</p>
         <p className="text-body-xs truncate text-neutral-600">{user.email}</p>

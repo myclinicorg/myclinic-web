@@ -13,11 +13,11 @@ import { usePathname } from 'next/navigation';
 import { isActive } from '@/app/ui/dashboard/links';
 
 const tabs = [
-  { name: 'Início', href: '/dashboard', icon: RiHomeLine },
-  { name: 'Agenda', href: '/dashboard/appointments', icon: RiCalendarLine },
-  { name: 'Pacientes', href: '/dashboard/patients', icon: RiTeamLine },
-  { name: 'Caixa', href: '/dashboard/transactions', icon: RiWallet3Line },
-  { name: 'Mais', href: '/dashboard/more', icon: RiMoreLine },
+  { name: 'Início', href: '/painel', icon: RiHomeLine },
+  { name: 'Agenda', href: '/painel/agenda', icon: RiCalendarLine },
+  { name: 'Pacientes', href: '/painel/pacientes', icon: RiTeamLine },
+  { name: 'Caixa', href: '/painel/caixa', icon: RiWallet3Line },
+  { name: 'Mais', href: '/painel/mais', icon: RiMoreLine },
 ];
 
 export default function MobileBottomNav() {

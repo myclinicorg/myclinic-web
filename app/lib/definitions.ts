@@ -21,6 +21,18 @@ export const SignupFormSchema = z.object({
     .max(128, { error: 'A senha deve ter no máximo 128 caracteres.' }),
 });
 
+export const ForgotPasswordFormSchema = z.object({
+  email: z.email({ error: 'Informe um e-mail válido.' }).trim(),
+});
+
+export const ResetPasswordFormSchema = z.object({
+  token: z.string().min(1, { error: 'Link inválido. Peça um novo link.' }),
+  password: z
+    .string()
+    .min(12, { error: 'A senha deve ter pelo menos 12 caracteres.' })
+    .max(128, { error: 'A senha deve ter no máximo 128 caracteres.' }),
+});
+
 export type FormState<Field extends string = string> =
   | {
       errors?: Partial<Record<Field, string[]>>;
