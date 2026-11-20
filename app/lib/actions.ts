@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { api } from '@/app/lib/api';
+import { setFlash } from '@/app/lib/flash';
 import {
   ClinicFormSchema,
   type ClinicField,
@@ -293,6 +294,7 @@ export async function createClinic(
   }
 
   revalidatePath('/painel', 'layout');
+  await setFlash('Clínica cadastrada. Tudo pronto para começar!');
   redirect('/painel');
 }
 
@@ -329,16 +331,17 @@ export async function createPatient(
     return { errors: validatedFields.error.flatten().fieldErrors, values };
   }
 
-  const { error, response } = await api.POST('/patients', {
+  const { data, error, response } = await api.POST('/patients', {
     body: validatedFields.data,
   });
 
-  if (!response.ok) {
+  if (!data) {
     return apiErrorState(response, error, values, CPF_CONFLICT);
   }
 
   revalidatePath('/painel/pacientes');
-  redirect('/painel/pacientes');
+  await setFlash('Paciente cadastrado.');
+  redirect(`/painel/pacientes/${data.id}`);
 }
 
 export async function updatePatient(
@@ -363,10 +366,14 @@ export async function updatePatient(
   }
 
   revalidatePath('/painel/pacientes');
-  redirect('/painel/pacientes');
+  await setFlash('Alterações salvas.');
+  redirect(`/painel/pacientes/${id}`);
 }
 
-export async function deletePatient(id: string): Promise<DeleteState> {
+export async function deletePatient(
+  id: string,
+  redirectTo?: string,
+): Promise<DeleteState> {
   const { error, response } = await api.DELETE('/patients/{id}', {
     params: { path: { id } },
   });
@@ -376,6 +383,10 @@ export async function deletePatient(id: string): Promise<DeleteState> {
   }
 
   revalidatePath('/painel/pacientes');
+  await setFlash('Paciente excluído.');
+  if (redirectTo) {
+    redirect(redirectTo);
+  }
 }
 
 const SERVICE_FIELDS = [
@@ -408,6 +419,7 @@ async function saveService(
   }
 
   revalidatePath('/painel/servicos');
+  await setFlash(id ? 'Serviço atualizado.' : 'Serviço cadastrado.');
   redirect('/painel/servicos');
 }
 
@@ -436,4 +448,5 @@ export async function deleteService(id: string): Promise<DeleteState> {
   }
 
   revalidatePath('/painel/servicos');
+  await setFlash('Serviço excluído.');
 }

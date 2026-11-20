@@ -2,9 +2,12 @@ import type { Metadata } from 'next';
 import { Suspense } from 'react';
 import PageHeader from '@/app/ui/page-header';
 import { CreatePatient } from '@/app/ui/patients/buttons';
-import PatientsTable from '@/app/ui/patients/table';
+import PatientStats from '@/app/ui/patients/stats';
+import PatientsTable, { PatientsCount } from '@/app/ui/patients/table';
 import Search from '@/app/ui/search';
-import { TableSkeleton } from '@/app/ui/skeletons';
+import { StatGridSkeleton } from '@/app/ui/stat-card';
+import { SkeletonLine, TableSkeleton } from '@/app/ui/skeletons';
+import TableCard from '@/app/ui/table-card';
 
 export const metadata: Metadata = {
   title: 'Pacientes',
@@ -18,24 +21,31 @@ async function PatientsList({
   const { query, page } = await searchParams;
   const term = typeof query === 'string' ? query : '';
   const currentPage = Number(page) || 1;
+  const key = `${term}|${currentPage}`;
 
   return (
-    <>
-      <Toolbar />
-      <Suspense key={term + currentPage} fallback={<TableSkeleton />}>
+    <TableCard
+      title="Todos os pacientes"
+      subtitle={
+        <Suspense key={key} fallback="Carregando…">
+          <PatientsCount query={term} currentPage={currentPage} />
+        </Suspense>
+      }
+      actions={
+        <>
+          <div className="w-full sm:w-60">
+            <Search placeholder="Buscar por nome ou CPF…" />
+          </div>
+          <div className="hidden md:block">
+            <CreatePatient size="s" />
+          </div>
+        </>
+      }
+    >
+      <Suspense key={key} fallback={<TableSkeleton />}>
         <PatientsTable query={term} currentPage={currentPage} />
       </Suspense>
-    </>
-  );
-}
-
-function Toolbar() {
-  return (
-    <div className="flex border-b border-neutral-100 py-4 pr-4 pl-5">
-      <div className="w-full sm:w-80">
-        <Search placeholder="Buscar por nome ou CPF…" />
-      </div>
-    </div>
+    </TableCard>
   );
 }
 
@@ -44,14 +54,25 @@ export default function Page(props: PageProps<'/painel/pacientes'>) {
     <div className="flex flex-col gap-6">
       <PageHeader
         title="Pacientes"
-        description="Cadastro e contato dos seus pacientes."
-        actions={<CreatePatient />}
+        description="Cadastro, contato e histórico dos seus pacientes."
+        actions={
+          <div className="md:hidden">
+            <CreatePatient />
+          </div>
+        }
       />
-      <div className="border border-neutral-100 bg-white">
-        <Suspense fallback={<TableSkeleton />}>
-          <PatientsList searchParams={props.searchParams} />
-        </Suspense>
-      </div>
+      <Suspense fallback={<StatGridSkeleton />}>
+        <PatientStats />
+      </Suspense>
+      <Suspense
+        fallback={
+          <div className="border border-neutral-100 bg-white p-5">
+            <SkeletonLine className="w-40" />
+          </div>
+        }
+      >
+        <PatientsList searchParams={props.searchParams} />
+      </Suspense>
     </div>
   );
 }

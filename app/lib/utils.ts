@@ -110,3 +110,55 @@ export function formatDuration(minutes: number) {
   if (!hours) return `${rest} min`;
   return rest ? `${hours}h ${rest}min` : `${hours}h`;
 }
+
+const SAO_PAULO_OFFSET = '-03:00';
+
+function saoPauloParts(date: Date) {
+  const parts = Object.fromEntries(
+    new Intl.DateTimeFormat('en-CA', {
+      timeZone: 'America/Sao_Paulo',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hourCycle: 'h23',
+    })
+      .formatToParts(date)
+      .map((part) => [part.type, part.value]),
+  );
+  return parts as Record<
+    'year' | 'month' | 'day' | 'hour' | 'minute' | 'second',
+    string
+  >;
+}
+
+export function toSaoPauloIso(date: Date) {
+  const p = saoPauloParts(date);
+  return `${p.year}-${p.month}-${p.day}T${p.hour}:${p.minute}:${p.second}${SAO_PAULO_OFFSET}`;
+}
+
+export function currentMonthRange(now = new Date()) {
+  const { year, month } = saoPauloParts(now);
+  const next = new Date(Date.UTC(Number(year), Number(month), 1));
+  const nextYear = next.getUTCFullYear();
+  const nextMonth = String(next.getUTCMonth() + 1).padStart(2, '0');
+  return {
+    from: `${year}-${month}-01T00:00:00${SAO_PAULO_OFFSET}`,
+    to: `${nextYear}-${nextMonth}-01T00:00:00${SAO_PAULO_OFFSET}`,
+  };
+}
+
+export function ageFrom(dateOfBirth: string, now = new Date()) {
+  const [year, month, day] = dateOfBirth.slice(0, 10).split('-').map(Number);
+  const today = saoPauloParts(now);
+  let age = Number(today.year) - year;
+  if (
+    Number(today.month) < month ||
+    (Number(today.month) === month && Number(today.day) < day)
+  ) {
+    age -= 1;
+  }
+  return age;
+}

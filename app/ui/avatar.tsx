@@ -11,14 +11,18 @@ export default function Avatar({
   size = 's',
 }: {
   name: string;
-  size?: 's' | 'm';
+  size?: 's' | 'm' | 'l';
 }) {
   return (
     <span
       aria-hidden
       className={clsx(
         'bg-brand-100 text-brand-900 flex shrink-0 items-center justify-center rounded-full',
-        size === 's' ? 'text-body-xs size-8' : 'text-body-s size-10',
+        {
+          s: 'text-body-xs size-8',
+          m: 'text-body-s size-10',
+          l: 'text-heading-6 size-16',
+        }[size],
       )}
     >
       {initials(name)}
