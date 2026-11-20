@@ -6,8 +6,10 @@ import { usePathname } from 'next/navigation';
 import { isActive, links } from '@/app/ui/dashboard/links';
 
 export default function NavLinks() {
-  const pathname = usePathname();
+  return <NavLinksView pathname={usePathname()} />;
+}
 
+export function NavLinksView({ pathname = '' }: { pathname?: string }) {
   return (
     <>
       {links.map((link) => {

@@ -21,8 +21,10 @@ const tabs = [
 ];
 
 export default function MobileBottomNav() {
-  const pathname = usePathname();
+  return <MobileBottomNavView pathname={usePathname()} />;
+}
 
+export function MobileBottomNavView({ pathname = '' }: { pathname?: string }) {
   return (
     <nav
       aria-label="Principal"

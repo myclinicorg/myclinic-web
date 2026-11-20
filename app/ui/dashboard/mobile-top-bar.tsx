@@ -6,7 +6,10 @@ import { usePathname } from 'next/navigation';
 import { isActive, links } from '@/app/ui/dashboard/links';
 
 export default function MobileTopBar() {
-  const pathname = usePathname();
+  return <MobileTopBarView pathname={usePathname()} />;
+}
+
+export function MobileTopBarView({ pathname = '' }: { pathname?: string }) {
   const title =
     pathname === '/painel/mais'
       ? 'Mais'

@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { Suspense } from 'react';
-import NavLinks from '@/app/ui/dashboard/nav-links';
+import NavLinks, { NavLinksView } from '@/app/ui/dashboard/nav-links';
 import PatientSearch from '@/app/ui/dashboard/patient-search';
 import QuickActions, {
   QuickActionsSkeleton,
@@ -20,7 +20,9 @@ export default function SideNav() {
         <PatientSearch />
       </div>
       <nav aria-label="Principal" className="flex flex-col gap-1">
-        <NavLinks />
+        <Suspense fallback={<NavLinksView />}>
+          <NavLinks />
+        </Suspense>
       </nav>
     </div>
   );
