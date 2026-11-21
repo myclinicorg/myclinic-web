@@ -12,6 +12,10 @@ import {
   type PatientField,
   ServiceFormSchema,
   type ServiceField,
+  type TransactionCategory,
+  type TransactionField,
+  TransactionFormSchema,
+  TransactionUpdateSchema,
   ForgotPasswordFormSchema,
   type FormState,
   LoginFormSchema,
@@ -610,4 +614,102 @@ export async function createAppointment(
 
   revalidatePath('/painel', 'layout');
   redirect(`/painel/agenda/${data.id}/agendado`);
+}
+
+export type TransactionState = FormState<TransactionField>;
+
+const TRANSACTION_FIELDS = [
+  'type',
+  'category',
+  'description',
+  'amount',
+  'dueDate',
+  'paid',
+  'paymentMethod',
+] as const;
+
+export async function createTransaction(
+  state: TransactionState,
+  formData: FormData,
+): Promise<TransactionState> {
+  const values = readValues(formData, TRANSACTION_FIELDS);
+  const parsed = TransactionFormSchema.safeParse(values);
+  if (!parsed.success) {
+    return { errors: parsed.error.flatten().fieldErrors, values };
+  }
+  const { amount, paid, paymentMethod, category, ...rest } = parsed.data;
+  const { error, response } = await api.POST('/transactions', {
+    body: {
+      ...rest,
+      category: category as TransactionCategory,
+      amountCents: amount,
+      paymentMethod: paid ? (paymentMethod as PaymentMethod) : undefined,
+    },
+  });
+  if (!response.ok) {
+    return apiErrorState(response, error, values);
+  }
+  revalidatePath('/painel', 'layout');
+  await setFlash('Lançamento registrado.');
+  redirect(`/painel/caixa?mes=${rest.dueDate.slice(0, 7)}`);
+}
+
+export async function updateTransaction(
+  id: string,
+  state: TransactionState,
+  formData: FormData,
+): Promise<TransactionState> {
+  const values = readValues(formData, TRANSACTION_FIELDS);
+  const parsed = TransactionUpdateSchema.safeParse(values);
+  if (!parsed.success) {
+    return { errors: parsed.error.flatten().fieldErrors, values };
+  }
+  const { amount, category, ...rest } = parsed.data;
+  const { error, response } = await api.PATCH('/transactions/{id}', {
+    params: { path: { id } },
+    body: {
+      ...rest,
+      category: category as TransactionCategory,
+      amountCents: amount,
+    },
+  });
+  if (!response.ok) {
+    return apiErrorState(response, error, values);
+  }
+  revalidatePath('/painel', 'layout');
+  await setFlash('Lançamento atualizado.');
+  redirect(`/painel/caixa?mes=${rest.dueDate.slice(0, 7)}`);
+}
+
+export async function payTransaction(
+  id: string,
+  state: DeleteState,
+  formData: FormData,
+): Promise<DeleteState> {
+  const method = String(formData.get('paymentMethod') ?? '');
+  if (!(method in PAYMENT_METHODS)) {
+    return { message: 'Escolha a forma de pagamento.' };
+  }
+  const { error, response } = await api.POST('/transactions/{id}/pay', {
+    params: { path: { id } },
+    body: { paymentMethod: method as PaymentMethod },
+  });
+  if (!response.ok) {
+    return { message: apiErrorState(response, error, {}).message };
+  }
+  revalidatePath('/painel', 'layout');
+  await setFlash('Pagamento registrado.');
+  return undefined;
+}
+
+export async function cancelTransaction(id: string): Promise<DeleteState> {
+  const { error, response } = await api.POST('/transactions/{id}/cancel', {
+    params: { path: { id } },
+  });
+  if (!response.ok) {
+    return { message: apiErrorState(response, error, {}).message };
+  }
+  revalidatePath('/painel', 'layout');
+  await setFlash('Lançamento cancelado.');
+  return undefined;
 }

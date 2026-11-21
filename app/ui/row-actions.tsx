@@ -298,6 +298,26 @@ function BottomSheet({
   );
 }
 
+export type MenuItem = Item;
+
+export function ActionMenu({
+  label,
+  title,
+  items,
+  variant,
+}: {
+  label: string;
+  title: string;
+  items: Item[];
+  variant: 'menu' | 'sheet';
+}) {
+  return variant === 'menu' ? (
+    <ElevatedMenu label={label} items={items} />
+  ) : (
+    <BottomSheet label={label} title={title} items={items} />
+  );
+}
+
 export function RowMenu({
   name,
   viewHref,
@@ -329,11 +349,7 @@ export function RowMenu({
 
   return (
     <>
-      {variant === 'menu' ? (
-        <ElevatedMenu label={label} items={items} />
-      ) : (
-        <BottomSheet label={label} title={name} items={items} />
-      )}
+      <ActionMenu label={label} title={name} items={items} variant={variant} />
       <DeleteDialog
         open={confirming}
         onClose={() => setConfirming(false)}
