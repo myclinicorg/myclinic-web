@@ -8,7 +8,14 @@ import type {
   AppointmentStatus,
   Patient,
 } from '@/app/lib/definitions';
-import { addDays, type CalendarView, rangeFor } from '@/app/lib/schedule';
+import {
+  addDays,
+  addMonths,
+  type CalendarView,
+  localDay,
+  rangeFor,
+  startOfMonth,
+} from '@/app/lib/schedule';
 import { currentMonthRange, toSaoPauloIso } from '@/app/lib/utils';
 
 export const ITEMS_PER_PAGE = 10;
@@ -279,4 +286,102 @@ export async function fetchAppointmentById(id: string) {
     handleFailure(response, 'Falha ao carregar o atendimento.');
   }
   return data;
+}
+
+const MONTH_SHORT = [
+  'jan',
+  'fev',
+  'mar',
+  'abr',
+  'mai',
+  'jun',
+  'jul',
+  'ago',
+  'set',
+  'out',
+  'nov',
+  'dez',
+];
+
+async function fetchSummary(from?: string, to?: string) {
+  const { data, response } = await api.GET('/transactions/summary', {
+    params: { query: { from, to } },
+  });
+  if (!data) {
+    handleFailure(response, 'Falha ao carregar o caixa.');
+  }
+  return data;
+}
+
+export async function fetchOverview() {
+  await connection();
+  const now = toSaoPauloIso(new Date());
+  const today = now.slice(0, 10);
+  const monthStart = startOfMonth(today);
+  const months = Array.from({ length: 6 }, (_, i) =>
+    addMonths(monthStart, i - 5),
+  );
+  const statuses: AppointmentStatus[] = [
+    'SCHEDULED',
+    'CONFIRMED',
+    'COMPLETED',
+    'NO_SHOW',
+    'CANCELED',
+  ];
+  const monthRange = currentMonthRange();
+
+  const [week, allTime, monthly, statusCounts, lowStock] = await Promise.all([
+    fetchAppointmentsBetween(
+      `${today}T00:00:00-03:00`,
+      `${addDays(today, 8)}T00:00:00-03:00`,
+    ),
+    fetchSummary(),
+    Promise.all(
+      months.map((month) =>
+        fetchSummary(month, addDays(addMonths(month, 1), -1)),
+      ),
+    ),
+    Promise.all(
+      statuses.map((status) => countAppointments({ ...monthRange, status })),
+    ),
+    api.GET('/supplies', {
+      params: {
+        query: { active: 'true', lowStock: 'true', page: 1, pageSize: 5 },
+      },
+    }),
+  ]);
+  if (!lowStock.data) {
+    handleFailure(lowStock.response, 'Falha ao carregar o estoque.');
+  }
+
+  const open = week.filter(
+    (appointment) =>
+      appointment.status === 'SCHEDULED' || appointment.status === 'CONFIRMED',
+  );
+
+  return {
+    today,
+    todayCount: week.filter(
+      (appointment) =>
+        localDay(appointment.startsAt) === today &&
+        appointment.status !== 'CANCELED',
+    ).length,
+    upcoming: open
+      .filter((appointment) => appointment.startsAt > now)
+      .slice(0, 5),
+    incomeThisMonthCents: monthly[5].incomeCents,
+    pendingIncomeCents: allTime.pendingIncomeCents,
+    revenue: months.map((month, i) => ({
+      month: `${MONTH_SHORT[Number(month.slice(5, 7)) - 1]}`,
+      year: month.slice(0, 4),
+      incomeCents: monthly[i].incomeCents,
+      expenseCents: monthly[i].expenseCents,
+    })),
+    statusCounts: statuses.map((status, i) => ({
+      status,
+      count: statusCounts[i],
+    })),
+    lowStock: lowStock.data.data,
+    lowStockTotal: lowStock.data.meta.total,
+  };
 }
