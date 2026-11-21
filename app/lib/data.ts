@@ -3,7 +3,8 @@ import { redirect } from 'next/navigation';
 import { connection } from 'next/server';
 import { cache } from 'react';
 import { api } from '@/app/lib/api';
-import type { AppointmentStatus } from '@/app/lib/definitions';
+import type { Appointment, AppointmentStatus } from '@/app/lib/definitions';
+import { type CalendarView, rangeFor } from '@/app/lib/schedule';
 import { currentMonthRange, toSaoPauloIso } from '@/app/lib/utils';
 
 export const ITEMS_PER_PAGE = 10;
@@ -185,3 +186,38 @@ export async function fetchPatientAppointments(patientId: string) {
 export type PatientAppointment = Awaited<
   ReturnType<typeof fetchPatientAppointments>
 >[number];
+
+export async function fetchSchedule(view: CalendarView, requestedDay?: string) {
+  await connection();
+  const today = toSaoPauloIso(new Date()).slice(0, 10);
+  const day = requestedDay ?? today;
+  const range = rangeFor(view, day);
+  const appointments: Appointment[] = [];
+  for (let page = 1; ; page += 1) {
+    const { data, response } = await api.GET('/appointments', {
+      params: {
+        query: { from: range.from, to: range.to, page, pageSize: 100 },
+      },
+    });
+    if (!data) {
+      handleFailure(response, 'Falha ao carregar a agenda.');
+    }
+    appointments.push(...data.data);
+    if (page >= data.meta.totalPages) break;
+  }
+  return { today, day, appointments };
+}
+
+export async function fetchAppointmentById(id: string) {
+  await connection();
+  const { data, response } = await api.GET('/appointments/{id}', {
+    params: { path: { id } },
+  });
+  if (response.status === 404 || response.status === 400) {
+    return null;
+  }
+  if (!data) {
+    handleFailure(response, 'Falha ao carregar o atendimento.');
+  }
+  return data;
+}

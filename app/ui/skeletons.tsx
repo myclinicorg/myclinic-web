@@ -73,3 +73,23 @@ export function TableSkeleton({ rows = 5 }: { rows?: number }) {
     </div>
   );
 }
+
+export function CalendarSkeleton() {
+  return (
+    <div className="border border-neutral-100 bg-white">
+      <div className="flex items-center gap-3 border-b border-neutral-100 px-5 py-4">
+        <SkeletonLine className="w-48" />
+      </div>
+      <div className="grid grid-cols-7">
+        {Array.from({ length: 35 }, (_, i) => (
+          <div
+            key={i}
+            className="h-24 border-r border-b border-neutral-100 p-2 last:border-r-0"
+          >
+            <SkeletonLine className="w-6" />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
