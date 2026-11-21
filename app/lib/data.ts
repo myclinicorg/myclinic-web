@@ -7,6 +7,9 @@ import type {
   Appointment,
   AppointmentStatus,
   Patient,
+  TransactionCategory,
+  TransactionStatus,
+  TransactionType,
 } from '@/app/lib/definitions';
 import {
   addDays,
@@ -384,4 +387,100 @@ export async function fetchOverview() {
     lowStock: lowStock.data.data,
     lowStockTotal: lowStock.data.meta.total,
   };
+}
+
+export type CashflowFilters = {
+  month: string;
+  type?: TransactionType;
+  status?: TransactionStatus;
+  category?: TransactionCategory;
+  page: number;
+};
+
+export function monthBounds(month: string) {
+  return { from: month, to: addDays(addMonths(month, 1), -1) };
+}
+
+async function countTransactions(query: {
+  from: string;
+  to: string;
+  type?: TransactionType;
+  status?: TransactionStatus;
+  category?: TransactionCategory;
+}) {
+  const { data, response } = await api.GET('/transactions', {
+    params: { query: { ...query, page: 1, pageSize: 1 } },
+  });
+  if (!data) {
+    handleFailure(response, 'Falha ao carregar os lançamentos.');
+  }
+  return data.meta.total;
+}
+
+export const fetchFilteredTransactions = cache(
+  async function fetchFilteredTransactions(filters: CashflowFilters) {
+    await connection();
+    const { data, response } = await api.GET('/transactions', {
+      params: {
+        query: {
+          ...monthBounds(filters.month),
+          type: filters.type,
+          status: filters.status,
+          category: filters.category,
+          page: filters.page,
+          pageSize: ITEMS_PER_PAGE,
+        },
+      },
+    });
+    if (!data) {
+      handleFailure(response, 'Falha ao carregar os lançamentos.');
+    }
+    return data;
+  },
+);
+
+export async function fetchCashflowSummary(month: string) {
+  await connection();
+  const { from, to } = monthBounds(month);
+  return fetchSummary(from, to);
+}
+
+export async function fetchTransactionTypeCounts(
+  filters: Omit<CashflowFilters, 'type' | 'page'>,
+) {
+  await connection();
+  const query = {
+    ...monthBounds(filters.month),
+    status: filters.status,
+    category: filters.category,
+  };
+  const [all, income, expense] = await Promise.all([
+    countTransactions(query),
+    countTransactions({ ...query, type: 'INCOME' }),
+    countTransactions({ ...query, type: 'EXPENSE' }),
+  ]);
+  return { all, income, expense };
+}
+
+export async function fetchTransactionById(id: string) {
+  await connection();
+  const { data, response } = await api.GET('/transactions/{id}', {
+    params: { path: { id } },
+  });
+  if (response.status === 404 || response.status === 400) {
+    return null;
+  }
+  if (!data) {
+    handleFailure(response, 'Falha ao carregar o lançamento.');
+  }
+  return data;
+}
+
+export function currentMonth() {
+  return `${toSaoPauloIso(new Date()).slice(0, 7)}-01`;
+}
+
+export async function currentDay() {
+  await connection();
+  return toSaoPauloIso(new Date()).slice(0, 10);
 }

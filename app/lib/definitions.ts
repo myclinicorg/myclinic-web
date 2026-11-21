@@ -259,6 +259,112 @@ export const ServiceFormSchema = z.object({
 
 export type ServiceField = keyof z.input<typeof ServiceFormSchema>;
 
+export type Transaction = components['schemas']['TransactionEntity'];
+export type TransactionType = Transaction['type'];
+export type TransactionCategory = Transaction['category'];
+export type TransactionStatus = Transaction['status'];
+
+export const TRANSACTION_TYPES: Record<
+  TransactionType,
+  { label: string; plural: string }
+> = {
+  INCOME: { label: 'Receita', plural: 'Receitas' },
+  EXPENSE: { label: 'Despesa', plural: 'Despesas' },
+};
+
+export const TRANSACTION_CATEGORIES: Record<
+  TransactionType,
+  Partial<Record<TransactionCategory, string>>
+> = {
+  INCOME: {
+    SERVICE: 'Atendimento',
+    PRODUCT_SALE: 'Venda de produto',
+    OTHER: 'Outras receitas',
+  },
+  EXPENSE: {
+    SUPPLIES: 'Insumos',
+    RENT: 'Aluguel',
+    UTILITIES: 'Contas (água, luz, internet)',
+    TAXES: 'Impostos',
+    EQUIPMENT: 'Equipamentos',
+    MARKETING: 'Divulgação',
+    OTHER: 'Outras despesas',
+  },
+};
+
+export function categoryLabel(
+  type: TransactionType,
+  category: TransactionCategory,
+) {
+  return TRANSACTION_CATEGORIES[type][category] ?? category;
+}
+
+export const TRANSACTION_STATUS: Record<
+  TransactionStatus,
+  { label: string; color: 'success' | 'warning' | 'gray' }
+> = {
+  PAID: { label: 'Pago', color: 'success' },
+  PENDING: { label: 'Pendente', color: 'warning' },
+  CANCELED: { label: 'Cancelado', color: 'gray' },
+};
+
+const PAYMENT_METHOD_VALUES = [
+  'PIX',
+  'CASH',
+  'DEBIT_CARD',
+  'CREDIT_CARD',
+  'BANK_TRANSFER',
+  'BANK_SLIP',
+] as const;
+
+const transactionShape = {
+  category: z.string().min(1, { error: 'Escolha a categoria.' }),
+  description: optionalText(
+    500,
+    'A descrição deve ter no máximo 500 caracteres.',
+  ),
+  amount: z
+    .string()
+    .transform(parseCurrencyToCents)
+    .refine((cents) => Number.isFinite(cents) && cents >= 1, {
+      error: 'Informe o valor em reais, por exemplo 150,00.',
+    }),
+  dueDate: z.iso.date({ error: 'Informe a data de vencimento.' }),
+};
+
+export const TransactionFormSchema = z
+  .object({
+    type: z.enum(['INCOME', 'EXPENSE'], { error: 'Escolha o tipo.' }),
+    ...transactionShape,
+    paid: z.string().transform((value) => value === 'on'),
+    paymentMethod: z.string(),
+  })
+  .superRefine(({ type, category, paid, paymentMethod }, ctx) => {
+    if (!(category in TRANSACTION_CATEGORIES[type])) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['category'],
+        message: 'Escolha uma categoria deste tipo.',
+      });
+    }
+    if (
+      paid &&
+      !PAYMENT_METHOD_VALUES.includes(
+        paymentMethod as (typeof PAYMENT_METHOD_VALUES)[number],
+      )
+    ) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['paymentMethod'],
+        message: 'Escolha a forma de pagamento.',
+      });
+    }
+  });
+
+export const TransactionUpdateSchema = z.object(transactionShape);
+
+export type TransactionField = keyof z.input<typeof TransactionFormSchema>;
+
 export type AddressField = keyof typeof addressShape;
 
 export type ClinicField = keyof z.input<typeof ClinicFormSchema>;
