@@ -134,7 +134,7 @@ export async function fetchPatientStats() {
   };
 }
 
-export async function fetchServiceStats() {
+export const fetchServiceStats = cache(async function fetchServiceStats() {
   await connection();
   const [active, inactive] = await Promise.all([
     api.GET('/services', {
@@ -165,7 +165,7 @@ export async function fetchServiceStats() {
       services.map((service) => service.durationMinutes),
     ),
   };
-}
+});
 
 export async function fetchPatientAppointments(patientId: string) {
   await connection();

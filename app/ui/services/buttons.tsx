@@ -4,9 +4,9 @@ import { deleteService } from '@/app/lib/actions';
 import { buttonClasses } from '@/app/ui/button';
 import { DeleteButton, EditLink } from '@/app/ui/row-actions';
 
-export function CreateService() {
+export function CreateService({ size = 'm' }: { size?: 's' | 'm' }) {
   return (
-    <Link href="/painel/servicos/novo" className={buttonClasses()}>
+    <Link href="/painel/servicos/novo" className={buttonClasses({ size })}>
       <RiAddLine aria-hidden />
       Novo serviço
     </Link>

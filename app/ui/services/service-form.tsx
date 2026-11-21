@@ -10,10 +10,10 @@ import {
 import type { Service, ServiceField } from '@/app/lib/definitions';
 import { formatCentsForInput } from '@/app/lib/utils';
 import { Button, buttonClasses } from '@/app/ui/button';
-import Checkbox from '@/app/ui/checkbox';
 import { TextareaField, TextField } from '@/app/ui/form-fields';
 import FormMessage from '@/app/ui/form-message';
 import FormSection from '@/app/ui/form-section';
+import Switch from '@/app/ui/switch';
 
 type Values = Partial<Record<ServiceField, string>>;
 
@@ -94,17 +94,14 @@ export default function ServiceForm({ service }: { service?: Service }) {
             required
           />
         </div>
-        <div className="flex flex-col gap-1">
-          <Checkbox
-            key={values.active}
-            name="active"
-            label="Serviço ativo"
-            defaultChecked={values.active === 'on'}
-          />
-          <p className="text-body-xs pl-7 text-neutral-600">
-            Serviços inativos não aparecem ao criar agendamentos.
-          </p>
-        </div>
+        <Switch
+          key={values.active}
+          id="active"
+          name="active"
+          label="Serviço ativo"
+          helperText="Serviços inativos não aparecem ao criar agendamentos."
+          defaultChecked={values.active === 'on'}
+        />
       </FormSection>
 
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-end">
