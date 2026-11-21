@@ -2,7 +2,7 @@ import { RiAddLine } from '@remixicon/react';
 import Link from 'next/link';
 import { deletePatient } from '@/app/lib/actions';
 import { buttonClasses } from '@/app/ui/button';
-import { DeleteButton, EditLink } from '@/app/ui/row-actions';
+import { DeleteButton, RowMenu } from '@/app/ui/row-actions';
 
 export function CreatePatient({ size = 'm' }: { size?: 's' | 'm' }) {
   return (
@@ -13,11 +13,23 @@ export function CreatePatient({ size = 'm' }: { size?: 's' | 'm' }) {
   );
 }
 
-export function UpdatePatient({ id, name }: { id: string; name: string }) {
+export function PatientActions({
+  id,
+  name,
+  variant,
+}: {
+  id: string;
+  name: string;
+  variant: 'menu' | 'sheet';
+}) {
   return (
-    <EditLink
-      href={`/painel/pacientes/${id}/editar`}
-      label={`Editar ${name}`}
+    <RowMenu
+      variant={variant}
+      name={name}
+      viewHref={`/painel/pacientes/${id}`}
+      editHref={`/painel/pacientes/${id}/editar`}
+      deleteAction={deletePatient.bind(null, id, undefined)}
+      deleteTitle="Excluir paciente"
     />
   );
 }
@@ -26,16 +38,13 @@ export function DeletePatient({
   id,
   name,
   redirectTo,
-  variant,
 }: {
   id: string;
   name: string;
   redirectTo?: string;
-  variant?: 'icon' | 'button';
 }) {
   return (
     <DeleteButton
-      variant={variant}
       action={deletePatient.bind(null, id, redirectTo)}
       title="Excluir paciente"
       name={name}

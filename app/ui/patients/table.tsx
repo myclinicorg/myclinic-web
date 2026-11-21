@@ -7,11 +7,7 @@ import Avatar from '@/app/ui/avatar';
 import EmptyState from '@/app/ui/empty-state';
 import { List, ListItem } from '@/app/ui/list';
 import Pagination from '@/app/ui/pagination';
-import {
-  CreatePatient,
-  DeletePatient,
-  UpdatePatient,
-} from '@/app/ui/patients/buttons';
+import { CreatePatient, PatientActions } from '@/app/ui/patients/buttons';
 
 const headerCell =
   'h-11 border-b border-neutral-100 bg-neutral-50 px-4 text-left text-subtitle-s text-neutral-800';
@@ -81,6 +77,13 @@ export default async function PatientsTable({
               leading={<Avatar name={patient.fullName} size="m" />}
               title={patient.fullName}
               description={contact(patient)}
+              actions={
+                <PatientActions
+                  id={patient.id}
+                  name={patient.fullName}
+                  variant="sheet"
+                />
+              }
             />
           ))}
         </List>
@@ -98,8 +101,8 @@ export default async function PatientsTable({
               <th scope="col" className={`${headerCell} hidden lg:table-cell`}>
                 Nascimento
               </th>
-              <th scope="col" className={`${headerCell} w-28 text-right`}>
-                Ações
+              <th scope="col" className={`${headerCell} w-16 text-right`}>
+                <span className="sr-only">Ações</span>
               </th>
             </tr>
           </thead>
@@ -132,8 +135,11 @@ export default async function PatientsTable({
                 </td>
                 <td className={cell}>
                   <div className="flex justify-end">
-                    <UpdatePatient id={patient.id} name={patient.fullName} />
-                    <DeletePatient id={patient.id} name={patient.fullName} />
+                    <PatientActions
+                      id={patient.id}
+                      name={patient.fullName}
+                      variant="menu"
+                    />
                   </div>
                 </td>
               </tr>

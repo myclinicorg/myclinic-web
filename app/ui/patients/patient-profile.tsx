@@ -83,7 +83,6 @@ export function PatientHeader({
             id={patient.id}
             name={patient.fullName}
             redirectTo="/painel/pacientes"
-            variant="button"
           />
           <Link
             href={`/painel/pacientes/${patient.id}/editar`}

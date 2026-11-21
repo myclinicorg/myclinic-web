@@ -2,7 +2,7 @@ import { RiAddLine } from '@remixicon/react';
 import Link from 'next/link';
 import { deleteService } from '@/app/lib/actions';
 import { buttonClasses } from '@/app/ui/button';
-import { DeleteButton, EditLink } from '@/app/ui/row-actions';
+import { RowMenu } from '@/app/ui/row-actions';
 
 export function CreateService({ size = 'm' }: { size?: 's' | 'm' }) {
   return (
@@ -13,18 +13,22 @@ export function CreateService({ size = 'm' }: { size?: 's' | 'm' }) {
   );
 }
 
-export function UpdateService({ id, name }: { id: string; name: string }) {
+export function ServiceActions({
+  id,
+  name,
+  variant,
+}: {
+  id: string;
+  name: string;
+  variant: 'menu' | 'sheet';
+}) {
   return (
-    <EditLink href={`/painel/servicos/${id}/editar`} label={`Editar ${name}`} />
-  );
-}
-
-export function DeleteService({ id, name }: { id: string; name: string }) {
-  return (
-    <DeleteButton
-      action={deleteService.bind(null, id)}
-      title="Excluir serviço"
+    <RowMenu
+      variant={variant}
       name={name}
+      editHref={`/painel/servicos/${id}/editar`}
+      deleteAction={deleteService.bind(null, id)}
+      deleteTitle="Excluir serviço"
     />
   );
 }

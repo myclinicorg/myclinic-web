@@ -5,11 +5,7 @@ import { Badge } from '@/app/ui/badge';
 import EmptyState from '@/app/ui/empty-state';
 import { List, ListItem } from '@/app/ui/list';
 import Pagination from '@/app/ui/pagination';
-import {
-  CreateService,
-  DeleteService,
-  UpdateService,
-} from '@/app/ui/services/buttons';
+import { CreateService, ServiceActions } from '@/app/ui/services/buttons';
 
 const headerCell =
   'h-11 border-b border-neutral-100 bg-neutral-50 px-4 text-left text-subtitle-s text-neutral-800';
@@ -101,6 +97,13 @@ export default async function ServicesTable({
               title={service.name}
               description={`${formatDuration(service.durationMinutes)}${service.active ? '' : ' · Inativo'}`}
               meta={formatCurrency(service.priceCents)}
+              actions={
+                <ServiceActions
+                  id={service.id}
+                  name={service.name}
+                  variant="sheet"
+                />
+              }
             />
           ))}
         </List>
@@ -121,8 +124,8 @@ export default async function ServicesTable({
               <th scope="col" className={headerCell}>
                 Status
               </th>
-              <th scope="col" className={`${headerCell} w-28 text-right`}>
-                Ações
+              <th scope="col" className={`${headerCell} w-16 text-right`}>
+                <span className="sr-only">Ações</span>
               </th>
             </tr>
           </thead>
@@ -153,8 +156,11 @@ export default async function ServicesTable({
                 </td>
                 <td className={cell}>
                   <div className="flex justify-end">
-                    <UpdateService id={service.id} name={service.name} />
-                    <DeleteService id={service.id} name={service.name} />
+                    <ServiceActions
+                      id={service.id}
+                      name={service.name}
+                      variant="menu"
+                    />
                   </div>
                 </td>
               </tr>
