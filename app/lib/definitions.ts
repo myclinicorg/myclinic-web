@@ -25,6 +25,27 @@ export const APPOINTMENT_STATUS: Record<
   NO_SHOW: { label: 'Faltou', color: 'danger' },
 };
 
+export type AppointmentDetail =
+  components['schemas']['AppointmentDetailEntity'];
+export type PaymentMethod = NonNullable<
+  components['schemas']['CompleteAppointmentDto']['paymentMethod']
+>;
+
+export const PAYMENT_METHODS: Record<
+  PaymentMethod,
+  { label: string; description: string }
+> = {
+  PIX: { label: 'Pix', description: 'Recebido na hora' },
+  CASH: { label: 'Dinheiro', description: 'Pago no balcão' },
+  DEBIT_CARD: { label: 'Cartão de débito', description: 'Pago na maquininha' },
+  CREDIT_CARD: {
+    label: 'Cartão de crédito',
+    description: 'Pago na maquininha',
+  },
+  BANK_TRANSFER: { label: 'Transferência', description: 'TED ou DOC' },
+  BANK_SLIP: { label: 'Boleto', description: 'Compensado em até 3 dias úteis' },
+};
+
 export const LoginFormSchema = z.object({
   email: z.email({ error: 'Informe um e-mail válido.' }).trim(),
   password: z.string().min(1, { error: 'Informe a senha.' }),

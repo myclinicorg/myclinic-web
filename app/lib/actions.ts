@@ -1,6 +1,7 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
+import * as z from 'zod';
 import { redirect } from 'next/navigation';
 import { api } from '@/app/lib/api';
 import { setFlash } from '@/app/lib/flash';
@@ -14,6 +15,8 @@ import {
   ForgotPasswordFormSchema,
   type FormState,
   LoginFormSchema,
+  PAYMENT_METHODS,
+  type PaymentMethod,
   ResetPasswordFormSchema,
   SignupFormSchema,
 } from '@/app/lib/definitions';
@@ -449,4 +452,90 @@ export async function deleteService(id: string): Promise<DeleteState> {
 
   revalidatePath('/painel/servicos');
   await setFlash('Serviço excluído.');
+}
+
+export type AppointmentActionState = { message?: string } | undefined;
+
+const COMPLETE_SCHEMA = z.object({
+  paymentMethod: z
+    .enum(Object.keys(PAYMENT_METHODS) as [PaymentMethod, ...PaymentMethod[]])
+    .optional(),
+});
+
+async function finishAppointmentAction(
+  id: string,
+  response: Response,
+  error: unknown,
+  flash: string,
+): Promise<AppointmentActionState> {
+  if (!response.ok) {
+    const state = apiErrorState(response, error, {});
+    return { message: state.message ?? UNEXPECTED_ERROR };
+  }
+  revalidatePath('/painel', 'layout');
+  await setFlash(flash);
+  redirect(`/painel/agenda/${id}`);
+}
+
+export async function confirmAppointment(
+  id: string,
+): Promise<AppointmentActionState> {
+  const { error, response } = await api.POST('/appointments/{id}/confirm', {
+    params: { path: { id } },
+  });
+  return finishAppointmentAction(
+    id,
+    response,
+    error,
+    'Atendimento confirmado.',
+  );
+}
+
+export async function markNoShow(id: string): Promise<AppointmentActionState> {
+  const { error, response } = await api.POST('/appointments/{id}/no-show', {
+    params: { path: { id } },
+  });
+  return finishAppointmentAction(id, response, error, 'Falta registrada.');
+}
+
+export async function cancelAppointment(
+  id: string,
+  state: AppointmentActionState,
+  formData: FormData,
+): Promise<AppointmentActionState> {
+  const reason = String(formData.get('reason') ?? '').trim();
+  if (reason.length > 500) {
+    return { message: 'O motivo deve ter no máximo 500 caracteres.' };
+  }
+  const { error, response } = await api.POST('/appointments/{id}/cancel', {
+    params: { path: { id } },
+    body: reason ? { reason } : {},
+  });
+  return finishAppointmentAction(id, response, error, 'Atendimento cancelado.');
+}
+
+export async function completeAppointment(
+  id: string,
+  state: AppointmentActionState,
+  formData: FormData,
+): Promise<AppointmentActionState> {
+  const method = String(formData.get('paymentMethod') ?? '');
+  const parsed = COMPLETE_SCHEMA.safeParse({
+    paymentMethod: method === 'LATER' ? undefined : method,
+  });
+  if (!parsed.success) {
+    return { message: 'Escolha como o atendimento foi pago.' };
+  }
+  const { error, response } = await api.POST('/appointments/{id}/complete', {
+    params: { path: { id } },
+    body: parsed.data,
+  });
+  return finishAppointmentAction(
+    id,
+    response,
+    error,
+    parsed.data.paymentMethod
+      ? 'Atendimento concluído e pagamento registrado no caixa.'
+      : 'Atendimento concluído. O valor ficou a receber no caixa.',
+  );
 }
