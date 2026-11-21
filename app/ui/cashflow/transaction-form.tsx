@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useActionState, useState } from 'react';
+import { startTransition, useActionState, useState } from 'react';
 import {
   createTransaction,
   type TransactionState,
@@ -61,8 +61,14 @@ export default function TransactionForm({
   );
   const [paid, setPaid] = useState(values.paid === 'on');
 
+  function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const formData = new FormData(event.currentTarget);
+    startTransition(() => formAction(formData));
+  }
+
   return (
-    <form action={formAction} className="flex flex-col gap-6">
+    <form onSubmit={handleSubmit} className="flex flex-col gap-6">
       <FormSection
         title="Tipo e categoria"
         description="Receitas entram no caixa; despesas saem."

@@ -107,6 +107,18 @@ async function Dashboard() {
         <WidgetCard
           title="Estoque baixo"
           subtitle="Insumos no mínimo ou abaixo"
+          action={
+            <Link
+              href="/painel/estoque?situacao=baixo"
+              className={buttonClasses({
+                hierarchy: 'secondary',
+                color: 'gray',
+                size: 's',
+              })}
+            >
+              Ver estoque
+            </Link>
+          }
         >
           <LowStockList supplies={overview.lowStock} />
         </WidgetCard>
