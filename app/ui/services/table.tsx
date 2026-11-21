@@ -3,6 +3,7 @@ import { fetchFilteredServices } from '@/app/lib/data';
 import { formatCurrency, formatDuration } from '@/app/lib/utils';
 import { Badge } from '@/app/ui/badge';
 import EmptyState from '@/app/ui/empty-state';
+import { List, ListItem } from '@/app/ui/list';
 import Pagination from '@/app/ui/pagination';
 import {
   CreateService,
@@ -29,6 +30,29 @@ const emptyStates = {
     description: 'Serviços desativados aparecem aqui.',
   },
 };
+
+export async function ServicesCount({
+  status,
+  currentPage,
+}: {
+  status: 'ativos' | 'inativos' | undefined;
+  currentPage: number;
+}) {
+  const { meta } = await fetchFilteredServices(status, currentPage);
+  return `${meta.total} ${meta.total === 1 ? 'serviço' : 'serviços'}`;
+}
+
+function StatusBadge({ active }: { active: boolean }) {
+  return active ? (
+    <Badge color="success" size="s" dot>
+      Ativo
+    </Badge>
+  ) : (
+    <Badge color="gray" size="s" dot>
+      Inativo
+    </Badge>
+  );
+}
 
 export default async function ServicesTable({
   status,
@@ -60,20 +84,41 @@ export default async function ServicesTable({
 
   return (
     <>
-      <div className="overflow-x-auto">
+      <div className="md:hidden">
+        <List>
+          {services.map((service) => (
+            <ListItem
+              key={service.id}
+              href={`/painel/servicos/${service.id}/editar`}
+              leading={
+                <span className="bg-brand-100 flex size-8 shrink-0 items-center justify-center rounded-full">
+                  <RiStethoscopeLine
+                    aria-hidden
+                    className="text-brand-700 size-4"
+                  />
+                </span>
+              }
+              title={service.name}
+              description={`${formatDuration(service.durationMinutes)}${service.active ? '' : ' · Inativo'}`}
+              meta={formatCurrency(service.priceCents)}
+            />
+          ))}
+        </List>
+      </div>
+      <div className="hidden overflow-x-auto md:block">
         <table className="w-full border-collapse">
           <thead>
             <tr>
               <th scope="col" className={headerCell}>
                 Serviço
               </th>
-              <th scope="col" className={`${headerCell} hidden md:table-cell`}>
+              <th scope="col" className={headerCell}>
                 Duração
               </th>
               <th scope="col" className={`${headerCell} text-right`}>
                 Preço
               </th>
-              <th scope="col" className={`${headerCell} hidden sm:table-cell`}>
+              <th scope="col" className={headerCell}>
                 Status
               </th>
               <th scope="col" className={`${headerCell} w-28 text-right`}>
@@ -83,7 +128,7 @@ export default async function ServicesTable({
           </thead>
           <tbody>
             {services.map((service) => (
-              <tr key={service.id} className="bg-white">
+              <tr key={service.id} className="bg-white hover:bg-neutral-50">
                 <td className={`${cell} w-full max-w-0`}>
                   <div className="flex min-w-0 flex-col gap-0.5">
                     <span className="text-subtitle-s truncate text-neutral-900">
@@ -95,9 +140,7 @@ export default async function ServicesTable({
                     </span>
                   </div>
                 </td>
-                <td
-                  className={`${cell} hidden whitespace-nowrap md:table-cell`}
-                >
+                <td className={`${cell} whitespace-nowrap`}>
                   {formatDuration(service.durationMinutes)}
                 </td>
                 <td
@@ -105,16 +148,8 @@ export default async function ServicesTable({
                 >
                   {formatCurrency(service.priceCents)}
                 </td>
-                <td className={`${cell} hidden sm:table-cell`}>
-                  {service.active ? (
-                    <Badge color="success" size="s" dot>
-                      Ativo
-                    </Badge>
-                  ) : (
-                    <Badge color="gray" size="s" dot>
-                      Inativo
-                    </Badge>
-                  )}
+                <td className={cell}>
+                  <StatusBadge active={service.active} />
                 </td>
                 <td className={cell}>
                   <div className="flex justify-end">
@@ -127,7 +162,7 @@ export default async function ServicesTable({
           </tbody>
         </table>
       </div>
-      <div className="flex flex-col gap-3 py-3 pr-4 pl-5 sm:flex-row sm:items-center">
+      <div className="flex flex-col items-center gap-3 border-t border-neutral-100 py-3 pr-4 pl-5 sm:flex-row md:border-t-0">
         <p className="text-body-s flex-1 text-neutral-600">
           Mostrando {first}–{last} de {meta.total}
         </p>
