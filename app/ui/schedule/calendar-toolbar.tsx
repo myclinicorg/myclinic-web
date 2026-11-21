@@ -6,20 +6,21 @@ import {
   shiftPeriod,
 } from '@/app/lib/schedule';
 import { buttonClasses } from '@/app/ui/button';
+import { type ScheduleFilters, scheduleHref } from '@/app/ui/schedule/links';
 import SegmentedControl from '@/app/ui/segmented-control';
-
-export function scheduleHref(view: CalendarView, day: string) {
-  return `/painel/agenda?view=${view}&data=${day}`;
-}
 
 export default function CalendarToolbar({
   view,
   day,
   today,
+  filters,
+  actions,
 }: {
   view: CalendarView;
   day: string;
   today: string;
+  filters: ScheduleFilters;
+  actions?: React.ReactNode;
 }) {
   const label = view === 'semana' ? 'semana' : 'mês';
   return (
@@ -29,7 +30,7 @@ export default function CalendarToolbar({
       </h2>
       <div className="flex flex-wrap items-center gap-3">
         <Link
-          href={scheduleHref(view, today)}
+          href={scheduleHref(view, today, filters)}
           className={buttonClasses({
             hierarchy: 'secondary',
             color: 'gray',
@@ -40,7 +41,7 @@ export default function CalendarToolbar({
         </Link>
         <div className="flex">
           <Link
-            href={scheduleHref(view, shiftPeriod(view, day, -1))}
+            href={scheduleHref(view, shiftPeriod(view, day, -1), filters)}
             aria-label={`${label === 'mês' ? 'Mês' : 'Semana'} anterior`}
             className={buttonClasses({
               hierarchy: 'tertiary',
@@ -52,7 +53,7 @@ export default function CalendarToolbar({
             <RiArrowLeftSLine aria-hidden className="size-5" />
           </Link>
           <Link
-            href={scheduleHref(view, shiftPeriod(view, day, 1))}
+            href={scheduleHref(view, shiftPeriod(view, day, 1), filters)}
             aria-label={`Próxim${label === 'mês' ? 'o mês' : 'a semana'}`}
             className={buttonClasses({
               hierarchy: 'tertiary',
@@ -69,16 +70,17 @@ export default function CalendarToolbar({
           items={[
             {
               label: 'Mês',
-              href: scheduleHref('mes', day),
+              href: scheduleHref('mes', day, filters),
               active: view === 'mes',
             },
             {
               label: 'Semana',
-              href: scheduleHref('semana', day),
+              href: scheduleHref('semana', day, filters),
               active: view === 'semana',
             },
           ]}
         />
+        {actions}
       </div>
     </div>
   );

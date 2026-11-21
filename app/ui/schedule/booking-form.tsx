@@ -11,12 +11,7 @@ import Link from 'next/link';
 import { startTransition, useActionState, useState } from 'react';
 import { type BookingState, createAppointment } from '@/app/lib/actions';
 import type { Patient, Service } from '@/app/lib/definitions';
-import {
-  availableSlots,
-  type BookingRules,
-  longDate,
-  startOfMonth,
-} from '@/app/lib/schedule';
+import { type BookingRules, longDate } from '@/app/lib/schedule';
 import {
   formatCpf,
   formatCurrency,
@@ -25,12 +20,11 @@ import {
   onlyDigits,
 } from '@/app/lib/utils';
 import { Button, buttonClasses } from '@/app/ui/button';
-import { ChipRadio } from '@/app/ui/chip';
-import Datepicker from '@/app/ui/datepicker';
 import { TextareaField, TextField } from '@/app/ui/form-fields';
 import FormMessage from '@/app/ui/form-message';
 import OptionCard from '@/app/ui/option-card';
 import ProgressBar from '@/app/ui/progress-bar';
+import SlotPicker from '@/app/ui/schedule/slot-picker';
 import Stepper from '@/app/ui/stepper';
 
 const STEPS = [
@@ -108,7 +102,6 @@ export default function BookingForm({
   const [time, setTime] = useState<string>();
   const [notes, setNotes] = useState('');
   const [query, setQuery] = useState('');
-  const [month, setMonth] = useState(startOfMonth(initialDay ?? rules.today));
   const [hint, setHint] = useState<string>();
   const [handledState, setHandledState] = useState(state);
 
@@ -123,7 +116,6 @@ export default function BookingForm({
   const patient = patients.find(({ id }) => id === patientId);
   const service = services.find(({ id }) => id === serviceId);
   const duration = service?.durationMinutes ?? 30;
-  const slots = day ? availableSlots(rules, day, duration) : [];
   const progress = Math.round((step / STEPS.length) * 100);
 
   const term = query.trim().toLowerCase();
@@ -288,50 +280,17 @@ export default function BookingForm({
                 Só aparecem dias e horários livres dentro do expediente.
               </p>
             </div>
-            <div className="flex flex-col gap-6 xl:flex-row">
-              <Datepicker
-                month={month}
-                onMonthChange={setMonth}
-                selected={day}
-                onSelect={(value) => {
-                  setDay(value);
-                  setTime(undefined);
-                }}
-                today={rules.today}
-                minMonth={startOfMonth(rules.today)}
-                maxMonth={startOfMonth(rules.lastDay)}
-                isDisabled={(value) =>
-                  availableSlots(rules, value, duration).length === 0
-                }
-              />
-              <fieldset className="flex min-w-0 flex-1 flex-col gap-3">
-                <legend className="text-subtitle-m mb-3 text-neutral-900">
-                  {day ? `Horários em ${longDate(day)}` : 'Horários'}
-                </legend>
-                {!day ? (
-                  <p className="text-body-s text-neutral-600">
-                    Escolha um dia no calendário.
-                  </p>
-                ) : slots.length === 0 ? (
-                  <p className="text-body-s text-neutral-600">
-                    Nenhum horário livre neste dia.
-                  </p>
-                ) : (
-                  <div className="flex flex-wrap gap-2">
-                    {slots.map((slot) => (
-                      <ChipRadio
-                        key={slot}
-                        name="timeChoice"
-                        value={slot}
-                        label={slot}
-                        checked={slot === time}
-                        onChange={() => setTime(slot)}
-                      />
-                    ))}
-                  </div>
-                )}
-              </fieldset>
-            </div>
+            <SlotPicker
+              rules={rules}
+              duration={duration}
+              day={day}
+              time={time}
+              onDayChange={(value) => {
+                setDay(value);
+                setTime(undefined);
+              }}
+              onTimeChange={setTime}
+            />
           </section>
 
           <section hidden={step !== 3} className="flex flex-col gap-5">

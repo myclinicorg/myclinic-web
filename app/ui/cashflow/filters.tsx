@@ -13,9 +13,7 @@ import { Button } from '@/app/ui/button';
 import { cashflowHref, type CashflowParams } from '@/app/ui/cashflow/links';
 import Drawer from '@/app/ui/drawer';
 import { SelectField } from '@/app/ui/form-fields';
-
-const radioClasses =
-  'peer checked:border-brand-700 size-5 cursor-pointer appearance-none rounded-full border-[1.5px] border-neutral-700 bg-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-700';
+import Radio from '@/app/ui/radio';
 
 export default function CashflowFilters({
   params,
@@ -90,26 +88,14 @@ export default function CashflowFilters({
               item.label,
             ]),
           ].map(([value, label]) => (
-            <label
+            <Radio
               key={value}
-              className="text-body-m flex cursor-pointer items-center gap-3 text-neutral-800"
-            >
-              <span className="relative flex">
-                <input
-                  type="radio"
-                  name="status"
-                  value={value}
-                  checked={status === value}
-                  onChange={() => setStatus(value)}
-                  className={radioClasses}
-                />
-                <span
-                  aria-hidden
-                  className="bg-brand-700 pointer-events-none absolute inset-0 m-auto hidden size-2.5 rounded-full peer-checked:block"
-                />
-              </span>
-              {label}
-            </label>
+              name="status"
+              value={value}
+              label={label}
+              checked={status === value}
+              onChange={() => setStatus(value)}
+            />
           ))}
         </fieldset>
         <SelectField

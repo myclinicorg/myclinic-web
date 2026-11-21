@@ -16,18 +16,22 @@ import {
 import { formatDuration } from '@/app/lib/utils';
 import { Badge } from '@/app/ui/badge';
 import EmptyState from '@/app/ui/empty-state';
-import { scheduleHref } from '@/app/ui/schedule/calendar-toolbar';
+import { type ScheduleFilters, scheduleHref } from '@/app/ui/schedule/links';
 
 export default function DayList({
   view,
   day,
   today,
   appointments,
+  filters,
+  actions,
 }: {
   view: CalendarView;
   day: string;
   today: string;
   appointments: Appointment[];
+  filters: ScheduleFilters;
+  actions?: React.ReactNode;
 }) {
   const events = appointments
     .filter((appointment) => localDay(appointment.startsAt) === day)
@@ -42,7 +46,7 @@ export default function DayList({
         {weekDays(day).map((date) => (
           <Link
             key={date}
-            href={scheduleHref(view, date)}
+            href={scheduleHref(view, date, filters)}
             aria-current={date === day ? 'date' : undefined}
             className={clsx(
               'focus-visible:outline-brand-700 flex flex-col items-center gap-0.5 border py-1.5 focus-visible:outline-2',
@@ -65,16 +69,23 @@ export default function DayList({
           </Link>
         ))}
       </nav>
-      <h2 className="text-subtitle-m text-neutral-900">
-        {day === today ? 'Hoje · ' : ''}
-        {longDate(day)}
-      </h2>
+      <div className="flex items-center justify-between gap-3">
+        <h2 className="text-subtitle-m text-neutral-900">
+          {day === today ? 'Hoje · ' : ''}
+          {longDate(day)}
+        </h2>
+        {actions}
+      </div>
       {events.length === 0 ? (
         <div className="border border-neutral-100 bg-white">
           <EmptyState
             icon={RiCalendarLine}
             title="Nenhum atendimento"
-            description="Não há atendimentos marcados para este dia."
+            description={
+              filters.status || filters.patientId
+                ? 'Nenhum atendimento neste dia com os filtros aplicados.'
+                : 'Não há atendimentos marcados para este dia.'
+            }
           />
         </div>
       ) : (

@@ -9,7 +9,7 @@ import {
   weekday,
 } from '@/app/lib/schedule';
 import CalendarEvent from '@/app/ui/schedule/calendar-event';
-import { scheduleHref } from '@/app/ui/schedule/calendar-toolbar';
+import { type ScheduleFilters, scheduleHref } from '@/app/ui/schedule/links';
 
 const MAX_EVENTS = 3;
 
@@ -17,10 +17,12 @@ export default function MonthView({
   day,
   today,
   appointments,
+  filters,
 }: {
   day: string;
   today: string;
   appointments: Appointment[];
+  filters: ScheduleFilters;
 }) {
   const weeks = monthWeeks(day);
   const month = day.slice(0, 7);
@@ -55,7 +57,7 @@ export default function MonthView({
                   )}
                 >
                   <Link
-                    href={scheduleHref('semana', date)}
+                    href={scheduleHref('semana', date, filters)}
                     aria-label={`Ver a semana de ${dayNumber(date)}`}
                     className={clsx(
                       'text-body-s focus-visible:outline-brand-700 flex size-6 items-center justify-center rounded-full focus-visible:outline-2',
@@ -77,7 +79,7 @@ export default function MonthView({
                   ))}
                   {events.length > MAX_EVENTS && (
                     <Link
-                      href={scheduleHref('semana', date)}
+                      href={scheduleHref('semana', date, filters)}
                       className="text-body-xs text-brand-700 px-1 hover:underline"
                     >
                       +{events.length - MAX_EVENTS} mais

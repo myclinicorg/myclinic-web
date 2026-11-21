@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import { Suspense } from 'react';
 import { requireClinic } from '@/app/lib/dal';
 import { fetchBookingOptions } from '@/app/lib/data';
-import { isValidDay, parseTime } from '@/app/lib/schedule';
+import { isValidDay } from '@/app/lib/schedule';
 import Breadcrumbs from '@/app/ui/breadcrumbs';
 import PageHeader from '@/app/ui/page-header';
 import BookingForm from '@/app/ui/schedule/booking-form';
@@ -19,8 +19,7 @@ async function Booking({
 }) {
   await requireClinic();
   const params = await searchParams;
-  const { clinic, patients, services, busy, today, lastDay, nowMinutes } =
-    await fetchBookingOptions();
+  const { rules, patients, services } = await fetchBookingOptions();
 
   return (
     <BookingForm
@@ -31,20 +30,12 @@ async function Booking({
       }
       initialDay={
         isValidDay(params.data) &&
-        params.data >= today &&
-        params.data <= lastDay
+        params.data >= rules.today &&
+        params.data <= rules.lastDay
           ? params.data
           : undefined
       }
-      rules={{
-        today,
-        lastDay,
-        nowMinutes,
-        openingMinutes: parseTime(clinic.openingTime) ?? 8 * 60,
-        closingMinutes: parseTime(clinic.closingTime) ?? 18 * 60,
-        workingDays: clinic.workingDays,
-        busy,
-      }}
+      rules={rules}
     />
   );
 }
