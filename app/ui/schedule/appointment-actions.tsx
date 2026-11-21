@@ -3,6 +3,7 @@
 import {
   RiCheckDoubleLine,
   RiCheckLine,
+  RiCalendarScheduleLine,
   RiCloseCircleLine,
   RiUserUnfollowLine,
 } from '@remixicon/react';
@@ -161,6 +162,13 @@ export default function AppointmentActions({
     <div className="flex flex-wrap items-start gap-3">
       <CancelButton id={id} patient={patient} />
       <NoShowButton id={id} patient={patient} />
+      <Link
+        href={`/painel/agenda/${id}/remarcar`}
+        className={buttonClasses({ hierarchy: 'secondary', color: 'gray' })}
+      >
+        <RiCalendarScheduleLine aria-hidden />
+        Remarcar
+      </Link>
       {status === 'SCHEDULED' && <ConfirmButton id={id} />}
       <Link href={`/painel/agenda/${id}/concluir`} className={buttonClasses()}>
         <RiCheckDoubleLine aria-hidden />

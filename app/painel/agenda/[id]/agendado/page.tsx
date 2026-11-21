@@ -14,7 +14,7 @@ import { fetchAppointmentById } from '@/app/lib/data';
 import { localDay, longDate, timeRange } from '@/app/lib/schedule';
 import { formatCurrency } from '@/app/lib/utils';
 import { buttonClasses } from '@/app/ui/button';
-import { scheduleHref } from '@/app/ui/schedule/calendar-toolbar';
+import { scheduleHref } from '@/app/ui/schedule/links';
 import { CardSkeleton } from '@/app/ui/skeletons';
 
 export const metadata: Metadata = {

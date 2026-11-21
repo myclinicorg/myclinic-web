@@ -15,8 +15,10 @@ import type {
 import {
   addDays,
   addMonths,
+  type BookingRules,
   type CalendarView,
   localDay,
+  parseTime,
   rangeFor,
   startOfMonth,
 } from '@/app/lib/schedule';
@@ -202,11 +204,15 @@ export type PatientAppointment = Awaited<
   ReturnType<typeof fetchPatientAppointments>
 >[number];
 
-async function fetchAppointmentsBetween(from: string, to: string) {
+async function fetchAppointmentsBetween(
+  from: string,
+  to: string,
+  filters: { status?: AppointmentStatus; patientId?: string } = {},
+) {
   const appointments: Appointment[] = [];
   for (let page = 1; ; page += 1) {
     const { data, response } = await api.GET('/appointments', {
-      params: { query: { from, to, page, pageSize: 100 } },
+      params: { query: { from, to, ...filters, page, pageSize: 100 } },
     });
     if (!data) {
       handleFailure(response, 'Falha ao carregar a agenda.');
@@ -217,50 +223,79 @@ async function fetchAppointmentsBetween(from: string, to: string) {
   return appointments;
 }
 
-export async function fetchSchedule(view: CalendarView, requestedDay?: string) {
+export async function fetchSchedule(
+  view: CalendarView,
+  requestedDay?: string,
+  filters: { status?: AppointmentStatus; patientId?: string } = {},
+) {
   await connection();
   const today = toSaoPauloIso(new Date()).slice(0, 10);
   const day = requestedDay ?? today;
   const range = rangeFor(view, day);
-  const appointments = await fetchAppointmentsBetween(range.from, range.to);
-  return { today, day, appointments };
+  const [appointments, patients] = await Promise.all([
+    fetchAppointmentsBetween(range.from, range.to, filters),
+    fetchAllPatients(),
+  ]);
+  return {
+    today,
+    day,
+    appointments,
+    patients: patients.map(({ id, fullName }) => ({ id, fullName })),
+  };
 }
 
 export const BOOKING_WINDOW_DAYS = 60;
 
-export async function fetchBookingOptions() {
+async function fetchBookingRules(ignoreId?: string): Promise<BookingRules> {
   await connection();
   const now = toSaoPauloIso(new Date());
   const today = now.slice(0, 10);
   const lastDay = addDays(today, BOOKING_WINDOW_DAYS);
-  const [clinic, patients, services, appointments] = await Promise.all([
+  const [clinic, appointments] = await Promise.all([
     fetchClinic(),
-    fetchAllPatients(),
-    api.GET('/services', {
-      params: { query: { active: 'true', page: 1, pageSize: 100 } },
-    }),
     fetchAppointmentsBetween(
       `${today}T00:00:00-03:00`,
       `${lastDay}T00:00:00-03:00`,
     ),
   ]);
-  if (!services.data) {
-    handleFailure(services.response, 'Falha ao carregar os serviços.');
-  }
   return {
     today,
     lastDay,
     nowMinutes: Number(now.slice(11, 13)) * 60 + Number(now.slice(14, 16)),
-    clinic,
-    patients,
-    services: services.data.data,
+    openingMinutes: parseTime(clinic.openingTime) ?? 8 * 60,
+    closingMinutes: parseTime(clinic.closingTime) ?? 18 * 60,
+    workingDays: clinic.workingDays,
     busy: appointments
       .filter(
         (appointment) =>
-          appointment.status !== 'CANCELED' && appointment.status !== 'NO_SHOW',
+          appointment.id !== ignoreId &&
+          appointment.status !== 'CANCELED' &&
+          appointment.status !== 'NO_SHOW',
       )
       .map(({ startsAt, endsAt }) => ({ startsAt, endsAt })),
   };
+}
+
+export async function fetchBookingOptions() {
+  const [rules, patients, services] = await Promise.all([
+    fetchBookingRules(),
+    fetchAllPatients(),
+    api.GET('/services', {
+      params: { query: { active: 'true', page: 1, pageSize: 100 } },
+    }),
+  ]);
+  if (!services.data) {
+    handleFailure(services.response, 'Falha ao carregar os serviços.');
+  }
+  return { rules, patients, services: services.data.data };
+}
+
+export async function fetchRescheduleOptions(id: string) {
+  const [appointment, rules] = await Promise.all([
+    fetchAppointmentById(id),
+    fetchBookingRules(id),
+  ]);
+  return { appointment, rules };
 }
 
 async function fetchAllPatients() {

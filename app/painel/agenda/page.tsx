@@ -4,11 +4,17 @@ import Link from 'next/link';
 import { Suspense } from 'react';
 import { requireClinic } from '@/app/lib/dal';
 import { fetchClinic, fetchSchedule } from '@/app/lib/data';
+import {
+  APPOINTMENT_STATUS,
+  type AppointmentStatus,
+} from '@/app/lib/definitions';
 import { type CalendarView, isValidDay, parseTime } from '@/app/lib/schedule';
 import { buttonClasses } from '@/app/ui/button';
 import PageHeader from '@/app/ui/page-header';
 import CalendarToolbar from '@/app/ui/schedule/calendar-toolbar';
 import DayList from '@/app/ui/schedule/day-list';
+import ScheduleFiltersButton from '@/app/ui/schedule/filters';
+import type { ScheduleFilters } from '@/app/ui/schedule/links';
 import MonthView from '@/app/ui/schedule/month-view';
 import WeekView from '@/app/ui/schedule/week-view';
 import { CalendarSkeleton } from '@/app/ui/skeletons';
@@ -25,10 +31,35 @@ async function Schedule({
   await requireClinic();
   const params = await searchParams;
   const view: CalendarView = params.view === 'mes' ? 'mes' : 'semana';
-  const [clinic, { today, day, appointments }] = await Promise.all([
+  const filters: ScheduleFilters = {
+    status:
+      typeof params.status === 'string' && params.status in APPOINTMENT_STATUS
+        ? (params.status as AppointmentStatus)
+        : undefined,
+    patientId:
+      typeof params.paciente === 'string' &&
+      /^[0-9a-f-]{36}$/i.test(params.paciente)
+        ? params.paciente
+        : undefined,
+  };
+  const [clinic, { today, day, appointments, patients }] = await Promise.all([
     fetchClinic(),
-    fetchSchedule(view, isValidDay(params.data) ? params.data : undefined),
+    fetchSchedule(
+      view,
+      isValidDay(params.data) ? params.data : undefined,
+      filters,
+    ),
   ]);
+  const filterButton = (idPrefix: string) => (
+    <ScheduleFiltersButton
+      key={JSON.stringify(filters)}
+      view={view}
+      day={day}
+      filters={filters}
+      patients={patients}
+      idPrefix={idPrefix}
+    />
+  );
 
   return (
     <>
@@ -38,10 +69,18 @@ async function Schedule({
           day={day}
           today={today}
           appointments={appointments}
+          filters={filters}
+          actions={filterButton('schedule-filter-mobile')}
         />
       </div>
       <section className="hidden border border-neutral-100 bg-white md:block">
-        <CalendarToolbar view={view} day={day} today={today} />
+        <CalendarToolbar
+          view={view}
+          day={day}
+          today={today}
+          filters={filters}
+          actions={filterButton('schedule-filter')}
+        />
         {view === 'semana' ? (
           <WeekView
             day={day}
@@ -52,7 +91,12 @@ async function Schedule({
             workingDays={clinic.workingDays}
           />
         ) : (
-          <MonthView day={day} today={today} appointments={appointments} />
+          <MonthView
+            day={day}
+            today={today}
+            appointments={appointments}
+            filters={filters}
+          />
         )}
       </section>
     </>

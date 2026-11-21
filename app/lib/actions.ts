@@ -620,6 +620,42 @@ export async function createAppointment(
   redirect(`/painel/agenda/${data.id}/agendado`);
 }
 
+export async function rescheduleAppointment(
+  id: string,
+  state: AppointmentActionState,
+  formData: FormData,
+): Promise<AppointmentActionState> {
+  const startsAt = BOOKING_SCHEMA.shape.startsAt.safeParse(
+    formData.get('startsAt') ?? '',
+  );
+  if (!startsAt.success) {
+    return { message: 'Escolha o novo dia e horário.' };
+  }
+  const { error, response } = await api.PATCH('/appointments/{id}', {
+    params: { path: { id } },
+    body: { startsAt: startsAt.data },
+  });
+  if (!response.ok) {
+    if (response.status === 401) {
+      redirect('/sessao-expirada');
+    }
+    const body: unknown = error;
+    const errorCode =
+      body && typeof body === 'object' && 'errorCode' in body
+        ? String(body.errorCode)
+        : '';
+    if (errorCode in BOOKING_ERROR_STEPS) {
+      refresh();
+    }
+    if (errorCode === 'SCHEDULE_CONFLICT') {
+      return { message: 'Esse horário acabou de ser ocupado. Escolha outro.' };
+    }
+    const state = apiErrorState(response, error, {});
+    return { message: state.message ?? UNEXPECTED_ERROR };
+  }
+  return finishAppointmentAction(id, response, error, 'Atendimento remarcado.');
+}
+
 export type TransactionState = FormState<TransactionField>;
 
 const TRANSACTION_FIELDS = [
