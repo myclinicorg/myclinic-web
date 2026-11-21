@@ -1,6 +1,6 @@
 'use server';
 
-import { revalidatePath } from 'next/cache';
+import { refresh, revalidatePath } from 'next/cache';
 import * as z from 'zod';
 import { redirect } from 'next/navigation';
 import { api } from '@/app/lib/api';
@@ -538,4 +538,76 @@ export async function completeAppointment(
       ? 'Atendimento concluído e pagamento registrado no caixa.'
       : 'Atendimento concluído. O valor ficou a receber no caixa.',
   );
+}
+
+export type BookingState = { message?: string; step?: number } | undefined;
+
+const BOOKING_SCHEMA = z.object({
+  patientId: z.uuid({ error: 'Escolha o paciente.' }),
+  serviceId: z.uuid({ error: 'Escolha o serviço.' }),
+  startsAt: z.string().regex(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:00-03:00$/, {
+    error: 'Escolha o dia e o horário.',
+  }),
+  notes: z
+    .string()
+    .trim()
+    .max(500, { error: 'As observações devem ter no máximo 500 caracteres.' })
+    .transform((value) => value || undefined),
+});
+
+const BOOKING_ERROR_STEPS: Record<string, number> = {
+  SCHEDULE_CONFLICT: 2,
+  PAST_DATE: 2,
+  OUTSIDE_BUSINESS_HOURS: 2,
+};
+
+export async function createAppointment(
+  state: BookingState,
+  formData: FormData,
+): Promise<BookingState> {
+  const parsed = BOOKING_SCHEMA.safeParse({
+    patientId: formData.get('patientId') ?? '',
+    serviceId: formData.get('serviceId') ?? '',
+    startsAt: formData.get('startsAt') ?? '',
+    notes: formData.get('notes') ?? '',
+  });
+  if (!parsed.success) {
+    const issue = parsed.error.issues[0];
+    const step = ['patientId', 'serviceId', 'startsAt', 'notes'].indexOf(
+      String(issue.path[0]),
+    );
+    return { message: issue.message, step };
+  }
+
+  const { data, error, response } = await api.POST('/appointments', {
+    body: parsed.data,
+  });
+
+  if (!data) {
+    if (response.status === 401) {
+      redirect('/sessao-expirada');
+    }
+    const body: unknown = error;
+    const errorCode =
+      body && typeof body === 'object' && 'errorCode' in body
+        ? String(body.errorCode)
+        : '';
+    if (errorCode in BOOKING_ERROR_STEPS) {
+      refresh();
+    }
+    if (errorCode === 'SCHEDULE_CONFLICT') {
+      return {
+        message: 'Esse horário acabou de ser ocupado. Escolha outro.',
+        step: 2,
+      };
+    }
+    const state = apiErrorState(response, error, {});
+    return {
+      message: state.message ?? UNEXPECTED_ERROR,
+      step: BOOKING_ERROR_STEPS[errorCode],
+    };
+  }
+
+  revalidatePath('/painel', 'layout');
+  redirect(`/painel/agenda/${data.id}/agendado`);
 }
