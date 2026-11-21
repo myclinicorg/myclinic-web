@@ -5,6 +5,7 @@ import {
   isValidCpf,
   onlyDigits,
   parseCurrencyToCents,
+  parseDecimal,
 } from '@/app/lib/utils';
 
 export type User = components['schemas']['UserEntity'];
@@ -364,6 +365,94 @@ export const TransactionFormSchema = z
 export const TransactionUpdateSchema = z.object(transactionShape);
 
 export type TransactionField = keyof z.input<typeof TransactionFormSchema>;
+
+export type Supply = components['schemas']['SupplyEntity'];
+export type StockMovement = components['schemas']['StockMovementEntity'];
+export type StockMovementType = StockMovement['type'];
+
+export const STOCK_MOVEMENT_TYPES: Record<
+  StockMovementType,
+  { label: string; description: string }
+> = {
+  IN: { label: 'Entrada', description: 'Compra ou reposição' },
+  OUT: { label: 'Saída', description: 'Uso em atendimento, perda, vencimento' },
+  ADJUSTMENT: {
+    label: 'Ajuste',
+    description: 'Correção de contagem (use − para reduzir)',
+  },
+};
+
+export const SupplyFormSchema = z.object({
+  name: z
+    .string()
+    .trim()
+    .min(1, { error: 'Informe o nome do insumo.' })
+    .max(120, { error: 'O nome deve ter no máximo 120 caracteres.' }),
+  description: optionalText(
+    500,
+    'A descrição deve ter no máximo 500 caracteres.',
+  ),
+  unit: z
+    .string()
+    .trim()
+    .min(1, { error: 'Informe a unidade (ex.: un, cx, ml).' })
+    .max(20, { error: 'A unidade deve ter no máximo 20 caracteres.' }),
+  minQuantity: z
+    .string()
+    .transform((value) => (value.trim() ? parseDecimal(value) : 0))
+    .refine((value) => Number.isFinite(value) && value >= 0, {
+      error: 'Informe o estoque mínimo, por exemplo 10 ou 2,5.',
+    }),
+  unitCost: z
+    .string()
+    .transform((value) => (value.trim() ? parseCurrencyToCents(value) : null))
+    .refine((value) => value === null || Number.isFinite(value), {
+      error: 'Informe o custo em reais, por exemplo 12,90.',
+    }),
+  active: z.string().transform((value) => value === 'on'),
+});
+
+export type SupplyField = keyof z.input<typeof SupplyFormSchema>;
+
+export const MovementFormSchema = z
+  .object({
+    type: z.enum(['IN', 'OUT', 'ADJUSTMENT'], {
+      error: 'Escolha o tipo de movimentação.',
+    }),
+    quantity: z
+      .string()
+      .transform(parseDecimal)
+      .refine((value) => Number.isFinite(value) && value !== 0, {
+        error: 'Informe a quantidade, por exemplo 5 ou 2,5.',
+      }),
+    unitCost: z
+      .string()
+      .transform((value) => (value.trim() ? parseCurrencyToCents(value) : null))
+      .refine((value) => value === null || Number.isFinite(value), {
+        error: 'Informe o custo em reais, por exemplo 12,90.',
+      }),
+    reason: optionalText(500, 'O motivo deve ter no máximo 500 caracteres.'),
+    registerExpense: z.string().transform((value) => value === 'on'),
+    paymentMethod: z.string(),
+  })
+  .superRefine(({ type, quantity, unitCost, registerExpense }, ctx) => {
+    if (type !== 'ADJUSTMENT' && quantity < 0) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['quantity'],
+        message: 'Use uma quantidade positiva; o tipo define se entra ou sai.',
+      });
+    }
+    if (type === 'IN' && registerExpense && unitCost === null) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['unitCost'],
+        message: 'Informe o custo unitário para lançar a despesa.',
+      });
+    }
+  });
+
+export type MovementField = keyof z.input<typeof MovementFormSchema>;
 
 export type AddressField = keyof typeof addressShape;
 

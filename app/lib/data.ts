@@ -7,6 +7,7 @@ import type {
   Appointment,
   AppointmentStatus,
   Patient,
+  Supply,
   TransactionCategory,
   TransactionStatus,
   TransactionType,
@@ -483,4 +484,94 @@ export function currentMonth() {
 export async function currentDay() {
   await connection();
   return toSaoPauloIso(new Date()).slice(0, 10);
+}
+
+export type StockTab = 'todos' | 'baixo' | 'inativos';
+
+function stockQuery(tab: StockTab) {
+  if (tab === 'baixo') return { active: 'true', lowStock: 'true' };
+  if (tab === 'inativos') return { active: 'false' };
+  return { active: 'true' };
+}
+
+export const fetchFilteredSupplies = cache(async function fetchFilteredSupplies(
+  tab: StockTab,
+  currentPage: number,
+) {
+  await connection();
+  const { data, response } = await api.GET('/supplies', {
+    params: {
+      query: {
+        ...stockQuery(tab),
+        page: currentPage,
+        pageSize: ITEMS_PER_PAGE,
+      },
+    },
+  });
+  if (!data) {
+    handleFailure(response, 'Falha ao carregar o estoque.');
+  }
+  return data;
+});
+
+async function fetchAllSupplies(active: 'true' | 'false') {
+  const supplies: Supply[] = [];
+  for (let page = 1; ; page += 1) {
+    const { data, response } = await api.GET('/supplies', {
+      params: { query: { active, page, pageSize: 100 } },
+    });
+    if (!data) {
+      handleFailure(response, 'Falha ao carregar o estoque.');
+    }
+    supplies.push(...data.data);
+    if (page >= data.meta.totalPages) break;
+  }
+  return supplies;
+}
+
+export const fetchStockStats = cache(async function fetchStockStats() {
+  await connection();
+  const [active, inactive] = await Promise.all([
+    fetchAllSupplies('true'),
+    fetchAllSupplies('false'),
+  ]);
+  return {
+    active: active.length,
+    inactive: inactive.length,
+    low: active.filter(
+      (supply) => Number(supply.currentQuantity) <= Number(supply.minQuantity),
+    ).length,
+    valueCents: Math.round(
+      active.reduce(
+        (sum, supply) =>
+          sum + Number(supply.currentQuantity) * (supply.unitCostCents ?? 0),
+        0,
+      ),
+    ),
+  };
+});
+
+export async function fetchSupplyById(id: string) {
+  await connection();
+  const { data, response } = await api.GET('/supplies/{id}', {
+    params: { path: { id } },
+  });
+  if (response.status === 404 || response.status === 400) {
+    return null;
+  }
+  if (!data) {
+    handleFailure(response, 'Falha ao carregar o insumo.');
+  }
+  return data;
+}
+
+export async function fetchSupplyMovements(id: string) {
+  await connection();
+  const { data, response } = await api.GET('/supplies/{id}/movements', {
+    params: { path: { id }, query: { page: 1, pageSize: 50 } },
+  });
+  if (!data) {
+    handleFailure(response, 'Falha ao carregar as movimentações.');
+  }
+  return data;
 }

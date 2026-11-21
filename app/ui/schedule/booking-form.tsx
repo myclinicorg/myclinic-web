@@ -8,7 +8,7 @@ import {
   type RemixiconComponentType,
 } from '@remixicon/react';
 import Link from 'next/link';
-import { useActionState, useState } from 'react';
+import { startTransition, useActionState, useState } from 'react';
 import { type BookingState, createAppointment } from '@/app/lib/actions';
 import type { Patient, Service } from '@/app/lib/definitions';
 import {
@@ -156,6 +156,12 @@ export default function BookingForm({
     setStep(step - 1);
   }
 
+  function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const formData = new FormData(event.currentTarget);
+    startTransition(() => formAction(formData));
+  }
+
   return (
     <div className="flex flex-col gap-6">
       <ProgressBar
@@ -175,7 +181,7 @@ export default function BookingForm({
           />
         </div>
         <form
-          action={formAction}
+          onSubmit={handleSubmit}
           className="flex min-w-0 flex-1 flex-col gap-6 border border-neutral-100 bg-white p-6 sm:p-8"
         >
           <input type="hidden" name="patientId" value={patientId ?? ''} />

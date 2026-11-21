@@ -162,3 +162,14 @@ export function ageFrom(dateOfBirth: string, now = new Date()) {
   }
   return age;
 }
+
+export function parseDecimal(value: string) {
+  const normalized = value.trim().replace(/\./g, '').replace(',', '.');
+  if (!/^-?\d+(\.\d{1,3})?$/.test(normalized)) {
+    return NaN;
+  }
+  return Number(normalized);
+}
+
+export const formatQuantity = (value: number | string) =>
+  Number(value).toLocaleString('pt-BR', { maximumFractionDigits: 3 });

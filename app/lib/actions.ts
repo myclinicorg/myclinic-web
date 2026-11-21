@@ -11,7 +11,11 @@ import {
   PatientFormSchema,
   type PatientField,
   ServiceFormSchema,
+  type MovementField,
+  MovementFormSchema,
   type ServiceField,
+  type SupplyField,
+  SupplyFormSchema,
   type TransactionCategory,
   type TransactionField,
   TransactionFormSchema,
@@ -712,4 +716,131 @@ export async function cancelTransaction(id: string): Promise<DeleteState> {
   revalidatePath('/painel', 'layout');
   await setFlash('Lançamento cancelado.');
   return undefined;
+}
+
+export type SupplyState = FormState<SupplyField>;
+export type MovementState = FormState<MovementField>;
+
+const SUPPLY_FIELDS = [
+  'name',
+  'description',
+  'unit',
+  'minQuantity',
+  'unitCost',
+  'active',
+] as const;
+
+const MOVEMENT_FIELDS = [
+  'type',
+  'quantity',
+  'unitCost',
+  'reason',
+  'registerExpense',
+  'paymentMethod',
+] as const;
+
+async function saveSupply(
+  formData: FormData,
+  id?: string,
+): Promise<SupplyState> {
+  const values = readValues(formData, SUPPLY_FIELDS);
+  const parsed = SupplyFormSchema.safeParse(values);
+  if (!parsed.success) {
+    return { errors: parsed.error.flatten().fieldErrors, values };
+  }
+  const { unitCost, ...supply } = parsed.data;
+  const body = { ...supply, unitCostCents: unitCost };
+  const { data, error, response } = id
+    ? await api.PATCH('/supplies/{id}', { params: { path: { id } }, body })
+    : await api.POST('/supplies', { body });
+  if (!data) {
+    return apiErrorState(response, error, values);
+  }
+  revalidatePath('/painel', 'layout');
+  await setFlash(id ? 'Insumo atualizado.' : 'Insumo cadastrado.');
+  redirect(`/painel/estoque/${data.id}`);
+}
+
+export async function createSupply(
+  state: SupplyState,
+  formData: FormData,
+): Promise<SupplyState> {
+  return saveSupply(formData);
+}
+
+export async function updateSupply(
+  id: string,
+  state: SupplyState,
+  formData: FormData,
+): Promise<SupplyState> {
+  return saveSupply(formData, id);
+}
+
+export async function deleteSupply(
+  id: string,
+  redirectTo?: string,
+): Promise<DeleteState> {
+  const { error, response } = await api.DELETE('/supplies/{id}', {
+    params: { path: { id } },
+  });
+  if (!response.ok) {
+    return { message: apiErrorState(response, error, {}).message };
+  }
+  revalidatePath('/painel', 'layout');
+  await setFlash('Insumo excluído.');
+  if (redirectTo) {
+    redirect(redirectTo);
+  }
+  return undefined;
+}
+
+export async function addMovement(
+  id: string,
+  state: MovementState,
+  formData: FormData,
+): Promise<MovementState> {
+  const values = readValues(formData, MOVEMENT_FIELDS);
+  const parsed = MovementFormSchema.safeParse(values);
+  if (!parsed.success) {
+    return { errors: parsed.error.flatten().fieldErrors, values };
+  }
+  const { type, quantity, unitCost, reason, registerExpense, paymentMethod } =
+    parsed.data;
+  const expense = type === 'IN' && registerExpense;
+  const { error, response } = await api.POST('/supplies/{id}/movements', {
+    params: { path: { id } },
+    body: {
+      type,
+      quantity,
+      reason: reason ?? undefined,
+      unitCostCents: type === 'IN' && unitCost !== null ? unitCost : undefined,
+      registerExpense: expense || undefined,
+      paymentMethod:
+        expense && paymentMethod in PAYMENT_METHODS
+          ? (paymentMethod as PaymentMethod)
+          : undefined,
+    },
+  });
+  if (!response.ok) {
+    const body: unknown = error;
+    if (
+      body &&
+      typeof body === 'object' &&
+      'errorCode' in body &&
+      body.errorCode === 'INSUFFICIENT_STOCK'
+    ) {
+      return {
+        errors: { quantity: ['A saída é maior que o saldo em estoque.'] },
+        values,
+      };
+    }
+    return apiErrorState(response, error, values);
+  }
+  revalidatePath('/painel', 'layout');
+  await setFlash(
+    expense
+      ? 'Movimentação registrada e despesa lançada no caixa.'
+      : 'Movimentação registrada.',
+  );
+  redirect(`/painel/estoque/${id}`);
 }
