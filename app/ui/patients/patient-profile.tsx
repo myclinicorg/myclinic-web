@@ -1,6 +1,7 @@
 import {
   RiCalendarCheckLine,
   RiCalendarLine,
+  RiCalendarScheduleLine,
   RiEditLine,
   RiIdCardLine,
   RiMailLine,
@@ -90,6 +91,13 @@ export function PatientHeader({
           >
             <RiEditLine aria-hidden />
             Editar
+          </Link>
+          <Link
+            href={`/painel/agenda/novo?paciente=${patient.id}`}
+            className={buttonClasses()}
+          >
+            <RiCalendarScheduleLine aria-hidden />
+            Agendar
           </Link>
         </div>
       </div>

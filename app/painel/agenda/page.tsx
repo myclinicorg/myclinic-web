@@ -1,8 +1,11 @@
+import { RiAddLine } from '@remixicon/react';
 import type { Metadata } from 'next';
+import Link from 'next/link';
 import { Suspense } from 'react';
 import { requireClinic } from '@/app/lib/dal';
 import { fetchClinic, fetchSchedule } from '@/app/lib/data';
 import { type CalendarView, isValidDay, parseTime } from '@/app/lib/schedule';
+import { buttonClasses } from '@/app/ui/button';
 import PageHeader from '@/app/ui/page-header';
 import CalendarToolbar from '@/app/ui/schedule/calendar-toolbar';
 import DayList from '@/app/ui/schedule/day-list';
@@ -62,6 +65,12 @@ export default function Page(props: PageProps<'/painel/agenda'>) {
       <PageHeader
         title="Agenda"
         description="Atendimentos marcados, confirmados e concluídos."
+        actions={
+          <Link href="/painel/agenda/novo" className={buttonClasses()}>
+            <RiAddLine aria-hidden />
+            Novo agendamento
+          </Link>
+        }
       />
       <Suspense fallback={<CalendarSkeleton />}>
         <Schedule searchParams={props.searchParams} />

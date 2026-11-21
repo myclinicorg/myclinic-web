@@ -3,8 +3,12 @@ import { redirect } from 'next/navigation';
 import { connection } from 'next/server';
 import { cache } from 'react';
 import { api } from '@/app/lib/api';
-import type { Appointment, AppointmentStatus } from '@/app/lib/definitions';
-import { type CalendarView, rangeFor } from '@/app/lib/schedule';
+import type {
+  Appointment,
+  AppointmentStatus,
+  Patient,
+} from '@/app/lib/definitions';
+import { addDays, type CalendarView, rangeFor } from '@/app/lib/schedule';
 import { currentMonthRange, toSaoPauloIso } from '@/app/lib/utils';
 
 export const ITEMS_PER_PAGE = 10;
@@ -187,17 +191,11 @@ export type PatientAppointment = Awaited<
   ReturnType<typeof fetchPatientAppointments>
 >[number];
 
-export async function fetchSchedule(view: CalendarView, requestedDay?: string) {
-  await connection();
-  const today = toSaoPauloIso(new Date()).slice(0, 10);
-  const day = requestedDay ?? today;
-  const range = rangeFor(view, day);
+async function fetchAppointmentsBetween(from: string, to: string) {
   const appointments: Appointment[] = [];
   for (let page = 1; ; page += 1) {
     const { data, response } = await api.GET('/appointments', {
-      params: {
-        query: { from: range.from, to: range.to, page, pageSize: 100 },
-      },
+      params: { query: { from, to, page, pageSize: 100 } },
     });
     if (!data) {
       handleFailure(response, 'Falha ao carregar a agenda.');
@@ -205,7 +203,68 @@ export async function fetchSchedule(view: CalendarView, requestedDay?: string) {
     appointments.push(...data.data);
     if (page >= data.meta.totalPages) break;
   }
+  return appointments;
+}
+
+export async function fetchSchedule(view: CalendarView, requestedDay?: string) {
+  await connection();
+  const today = toSaoPauloIso(new Date()).slice(0, 10);
+  const day = requestedDay ?? today;
+  const range = rangeFor(view, day);
+  const appointments = await fetchAppointmentsBetween(range.from, range.to);
   return { today, day, appointments };
+}
+
+export const BOOKING_WINDOW_DAYS = 60;
+
+export async function fetchBookingOptions() {
+  await connection();
+  const now = toSaoPauloIso(new Date());
+  const today = now.slice(0, 10);
+  const lastDay = addDays(today, BOOKING_WINDOW_DAYS);
+  const [clinic, patients, services, appointments] = await Promise.all([
+    fetchClinic(),
+    fetchAllPatients(),
+    api.GET('/services', {
+      params: { query: { active: 'true', page: 1, pageSize: 100 } },
+    }),
+    fetchAppointmentsBetween(
+      `${today}T00:00:00-03:00`,
+      `${lastDay}T00:00:00-03:00`,
+    ),
+  ]);
+  if (!services.data) {
+    handleFailure(services.response, 'Falha ao carregar os serviços.');
+  }
+  return {
+    today,
+    lastDay,
+    nowMinutes: Number(now.slice(11, 13)) * 60 + Number(now.slice(14, 16)),
+    clinic,
+    patients,
+    services: services.data.data,
+    busy: appointments
+      .filter(
+        (appointment) =>
+          appointment.status !== 'CANCELED' && appointment.status !== 'NO_SHOW',
+      )
+      .map(({ startsAt, endsAt }) => ({ startsAt, endsAt })),
+  };
+}
+
+async function fetchAllPatients() {
+  const patients: Patient[] = [];
+  for (let page = 1; ; page += 1) {
+    const { data, response } = await api.GET('/patients', {
+      params: { query: { page, pageSize: 100 } },
+    });
+    if (!data) {
+      handleFailure(response, 'Falha ao carregar os pacientes.');
+    }
+    patients.push(...data.data);
+    if (page >= data.meta.totalPages) break;
+  }
+  return patients;
 }
 
 export async function fetchAppointmentById(id: string) {

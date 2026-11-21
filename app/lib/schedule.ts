@@ -187,3 +187,49 @@ export function dayAndMonth(day: string) {
 export function weekdayAndYear(day: string) {
   return `${WEEKDAY_LONG[weekday(day)]}, ${day.slice(0, 4)}`;
 }
+
+export const SLOT_STEP_MINUTES = 30;
+
+export type BookingRules = {
+  today: string;
+  lastDay: string;
+  nowMinutes: number;
+  openingMinutes: number;
+  closingMinutes: number;
+  workingDays: number[];
+  busy: { startsAt: string; endsAt: string }[];
+};
+
+export function availableSlots(
+  rules: BookingRules,
+  day: string,
+  duration: number,
+) {
+  if (
+    day < rules.today ||
+    day > rules.lastDay ||
+    (rules.workingDays.length > 0 && !rules.workingDays.includes(weekday(day)))
+  ) {
+    return [];
+  }
+  const busy = rules.busy
+    .filter((interval) => localDay(interval.startsAt) === day)
+    .map((interval) => ({
+      start: localMinutes(interval.startsAt),
+      end: localMinutes(interval.endsAt) || 24 * 60,
+    }));
+  const slots: string[] = [];
+  for (
+    let start = rules.openingMinutes;
+    start + duration <= rules.closingMinutes;
+    start += SLOT_STEP_MINUTES
+  ) {
+    const end = start + duration;
+    const past = day === rules.today && start <= rules.nowMinutes;
+    const taken = busy.some(
+      (interval) => start < interval.end && end > interval.start,
+    );
+    if (!past && !taken) slots.push(formatMinutes(start));
+  }
+  return slots;
+}
